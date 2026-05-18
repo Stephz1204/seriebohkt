@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <title>Lega FC26 Pro</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -263,18 +268,200 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // STATIC DATA
 // ==========================================
 const FORMATIONS = {
-  '4-3-3':[
-    {k:'GK',x:50,y:88,r:['P']},
-    {k:'RB',x:12,y:72,r:['TD']},
-    {k:'CB1',x:35,y:70,r:['DC']},
-    {k:'CB2',x:65,y:70,r:['DC']},
-    {k:'LB',x:88,y:72,r:['TS']},
-    {k:'CM1',x:28,y:52,r:['CC','CDC','COC']},
-    {k:'CM2',x:50,y:48,r:['CC','CDC','COC']},
-    {k:'CM3',x:72,y:52,r:['CC','CDC','COC']},
-    {k:'RW',x:15,y:30,r:['AD']},
-    {k:'ST',x:50,y:20,r:['ATT']},
-    {k:'LW',x:85,y:30,r:['AS']}
+  '4-3-3': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'RB', x:12, y:72, r:['TD']},
+    {k:'CB1',x:35, y:70, r:['DC']},
+    {k:'CB2',x:65, y:70, r:['DC']},
+    {k:'LB', x:88, y:72, r:['TS']},
+    {k:'CM1',x:28, y:50, r:['CC','CDC','COC']},
+    {k:'CM2',x:50, y:46, r:['CC','CDC','COC']},
+    {k:'CM3',x:72, y:50, r:['CC','CDC','COC']},
+    {k:'RW', x:15, y:28, r:['AD']},
+    {k:'ST', x:50, y:18, r:['ATT']},
+    {k:'LW', x:85, y:28, r:['AS']}
+  ],
+  '4-2-3-1': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'RB', x:12, y:72, r:['TD']},
+    {k:'CB1',x:35, y:70, r:['DC']},
+    {k:'CB2',x:65, y:70, r:['DC']},
+    {k:'LB', x:88, y:72, r:['TS']},
+    {k:'CDM1',x:35, y:55, r:['CDC','CC']},
+    {k:'CDM2',x:65, y:55, r:['CDC','CC']},
+    {k:'RAM', x:20, y:38, r:['AD','COC']},
+    {k:'CAM', x:50, y:35, r:['COC','CC']},
+    {k:'LAM', x:80, y:38, r:['AS','COC']},
+    {k:'ST', x:50, y:18, r:['ATT']}
+  ],
+  '4-2-1-3': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'RB', x:12, y:72, r:['TD']},
+    {k:'CB1',x:35, y:70, r:['DC']},
+    {k:'CB2',x:65, y:70, r:['DC']},
+    {k:'LB', x:88, y:72, r:['TS']},
+    {k:'CDM1',x:35, y:56, r:['CDC','CC']},
+    {k:'CDM2',x:65, y:56, r:['CDC','CC']},
+    {k:'CAM', x:50, y:42, r:['COC','CC']},
+    {k:'RW', x:15, y:24, r:['AD']},
+    {k:'ST', x:50, y:18, r:['ATT']},
+    {k:'LW', x:85, y:24, r:['AS']}
+  ],
+  '4-4-2': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'RB', x:12, y:72, r:['TD']},
+    {k:'CB1',x:35, y:70, r:['DC']},
+    {k:'CB2',x:65, y:70, r:['DC']},
+    {k:'LB', x:88, y:72, r:['TS']},
+    {k:'RM', x:12, y:50, r:['AD','CC']},
+    {k:'CM1',x:35, y:50, r:['CC','CDC']},
+    {k:'CM2',x:65, y:50, r:['CC','CDC']},
+    {k:'LM', x:88, y:50, r:['AS','CC']},
+    {k:'ST1',x:35, y:20, r:['ATT']},
+    {k:'ST2',x:65, y:20, r:['ATT']}
+  ],
+  '4-1-2-1-2': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'RB', x:12, y:72, r:['TD']},
+    {k:'CB1',x:35, y:70, r:['DC']},
+    {k:'CB2',x:65, y:70, r:['DC']},
+    {k:'LB', x:88, y:72, r:['TS']},
+    {k:'CDM', x:50, y:57, r:['CDC','CC']},
+    {k:'CM1',x:25, y:46, r:['CC','COC']},
+    {k:'CM2',x:75, y:46, r:['CC','COC']},
+    {k:'CAM', x:50, y:36, r:['COC','CC']},
+    {k:'ST1',x:33, y:20, r:['ATT']},
+    {k:'ST2',x:67, y:20, r:['ATT']}
+  ],
+  '4-3-2-1': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'RB', x:12, y:72, r:['TD']},
+    {k:'CB1',x:35, y:70, r:['DC']},
+    {k:'CB2',x:65, y:70, r:['DC']},
+    {k:'LB', x:88, y:72, r:['TS']},
+    {k:'CM1',x:25, y:52, r:['CC','CDC']},
+    {k:'CM2',x:50, y:50, r:['CC','CDC']},
+    {k:'CM3',x:75, y:52, r:['CC','CDC']},
+    {k:'RF', x:33, y:34, r:['COC','AD']},
+    {k:'LF', x:67, y:34, r:['COC','AS']},
+    {k:'ST', x:50, y:18, r:['ATT']}
+  ],
+  '4-5-1': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'RB', x:12, y:72, r:['TD']},
+    {k:'CB1',x:35, y:70, r:['DC']},
+    {k:'CB2',x:65, y:70, r:['DC']},
+    {k:'LB', x:88, y:72, r:['TS']},
+    {k:'RM', x:10, y:50, r:['AD','CC']},
+    {k:'CM1',x:30, y:50, r:['CC','CDC']},
+    {k:'CM2',x:50, y:48, r:['CC','CDC']},
+    {k:'CM3',x:70, y:50, r:['CC','CDC']},
+    {k:'LM', x:90, y:50, r:['AS','CC']},
+    {k:'ST', x:50, y:20, r:['ATT']}
+  ],
+  '4-1-4-1': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'RB', x:12, y:72, r:['TD']},
+    {k:'CB1',x:35, y:70, r:['DC']},
+    {k:'CB2',x:65, y:70, r:['DC']},
+    {k:'LB', x:88, y:72, r:['TS']},
+    {k:'CDM', x:50, y:57, r:['CDC','CC']},
+    {k:'RM', x:10, y:44, r:['AD','CC']},
+    {k:'CM1',x:33, y:44, r:['CC','COC']},
+    {k:'CM2',x:67, y:44, r:['CC','COC']},
+    {k:'LM', x:90, y:44, r:['AS','CC']},
+    {k:'ST', x:50, y:20, r:['ATT']}
+  ],
+  '3-5-2': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'CB1',x:25, y:72, r:['DC']},
+    {k:'CB2',x:50, y:74, r:['DC']},
+    {k:'CB3',x:75, y:72, r:['DC']},
+    {k:'RWB',x:8,  y:54, r:['TD','TS']},
+    {k:'CM1',x:30, y:50, r:['CC','CDC']},
+    {k:'CM2',x:50, y:48, r:['CC','CDC']},
+    {k:'CM3',x:70, y:50, r:['CC','CDC']},
+    {k:'LWB',x:92, y:54, r:['TS','TD']},
+    {k:'ST1',x:35, y:20, r:['ATT']},
+    {k:'ST2',x:65, y:20, r:['ATT']}
+  ],
+  '3-4-3': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'CB1',x:25, y:72, r:['DC']},
+    {k:'CB2',x:50, y:74, r:['DC']},
+    {k:'CB3',x:75, y:72, r:['DC']},
+    {k:'RWB',x:10, y:54, r:['TD','TS']},
+    {k:'CM1',x:35, y:50, r:['CC','CDC']},
+    {k:'CM2',x:65, y:50, r:['CC','CDC']},
+    {k:'LWB',x:90, y:54, r:['TS','TD']},
+    {k:'RW', x:15, y:26, r:['AD']},
+    {k:'ST', x:50, y:18, r:['ATT']},
+    {k:'LW', x:85, y:26, r:['AS']}
+  ],
+  '3-4-2-1': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'CB1',x:25, y:72, r:['DC']},
+    {k:'CB2',x:50, y:74, r:['DC']},
+    {k:'CB3',x:75, y:72, r:['DC']},
+    {k:'RWB',x:10, y:54, r:['TD','TS']},
+    {k:'CM1',x:35, y:50, r:['CC','CDC']},
+    {k:'CM2',x:65, y:50, r:['CC','CDC']},
+    {k:'LWB',x:90, y:54, r:['TS','TD']},
+    {k:'RF', x:33, y:32, r:['COC','AD']},
+    {k:'LF', x:67, y:32, r:['COC','AS']},
+    {k:'ST', x:50, y:18, r:['ATT']}
+  ],
+  '5-3-2': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'RWB',x:6,  y:66, r:['TD']},
+    {k:'CB1',x:25, y:74, r:['DC']},
+    {k:'CB2',x:50, y:76, r:['DC']},
+    {k:'CB3',x:75, y:74, r:['DC']},
+    {k:'LWB',x:94, y:66, r:['TS']},
+    {k:'CM1',x:25, y:50, r:['CC','CDC']},
+    {k:'CM2',x:50, y:48, r:['CC','CDC']},
+    {k:'CM3',x:75, y:50, r:['CC','CDC']},
+    {k:'ST1',x:35, y:20, r:['ATT']},
+    {k:'ST2',x:65, y:20, r:['ATT']}
+  ],
+  '4-2-2-2': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'RB', x:12, y:72, r:['TD']},
+    {k:'CB1',x:35, y:70, r:['DC']},
+    {k:'CB2',x:65, y:70, r:['DC']},
+    {k:'LB', x:88, y:72, r:['TS']},
+    {k:'CDM1',x:35, y:55, r:['CDC','CC']},
+    {k:'CDM2',x:65, y:55, r:['CDC','CC']},
+    {k:'RF', x:30, y:38, r:['COC','AD']},
+    {k:'LF', x:70, y:38, r:['COC','AS']},
+    {k:'ST1',x:35, y:20, r:['ATT']},
+    {k:'ST2',x:65, y:20, r:['ATT']}
+  ],
+  '4-3-1-2': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'RB', x:12, y:72, r:['TD']},
+    {k:'CB1',x:35, y:70, r:['DC']},
+    {k:'CB2',x:65, y:70, r:['DC']},
+    {k:'LB', x:88, y:72, r:['TS']},
+    {k:'CM1',x:25, y:52, r:['CC','CDC']},
+    {k:'CM2',x:50, y:50, r:['CC','CDC']},
+    {k:'CM3',x:75, y:52, r:['CC','CDC']},
+    {k:'CAM', x:50, y:36, r:['COC','CC']},
+    {k:'ST1',x:35, y:20, r:['ATT']},
+    {k:'ST2',x:65, y:20, r:['ATT']}
+  ],
+  '4-2-4': [
+    {k:'GK', x:50, y:88, r:['P']},
+    {k:'RB', x:12, y:72, r:['TD']},
+    {k:'CB1',x:35, y:70, r:['DC']},
+    {k:'CB2',x:65, y:70, r:['DC']},
+    {k:'LB', x:88, y:72, r:['TS']},
+    {k:'CDM1',x:35, y:54, r:['CDC','CC']},
+    {k:'CDM2',x:65, y:54, r:['CDC','CC']},
+    {k:'RW', x:15, y:24, r:['AD']},
+    {k:'ST1',x:37, y:18, r:['ATT']},
+    {k:'ST2',x:63, y:18, r:['ATT']},
+    {k:'LW', x:85, y:24, r:['AS']}
   ]
 };
 
@@ -290,6 +477,27 @@ const ROLES = {
   AS:'Ala Sinistra',
   ATT:'Attaccante'
 };
+
+const CALENDAR = [
+  { serata:1, giornata:1, partite:[['Stefano','Alessio'],['Luigi','Gabriele'],['Luca','Matteo'],['Mario','Mattia'],['Domenico','Giulio']] },
+  { serata:1, giornata:2, partite:[['Stefano','Gabriele'],['Alessio','Matteo'],['Luigi','Mattia'],['Luca','Giulio'],['Mario','Domenico']] },
+  { serata:2, giornata:3, partite:[['Stefano','Matteo'],['Gabriele','Mattia'],['Alessio','Giulio'],['Luigi','Domenico'],['Luca','Mario']] },
+  { serata:2, giornata:4, partite:[['Stefano','Mattia'],['Matteo','Giulio'],['Gabriele','Domenico'],['Alessio','Mario'],['Luigi','Luca']] },
+  { serata:3, giornata:5, partite:[['Stefano','Giulio'],['Mattia','Domenico'],['Matteo','Mario'],['Gabriele','Luca'],['Alessio','Luigi']] },
+  { serata:3, giornata:6, partite:[['Stefano','Domenico'],['Giulio','Mario'],['Mattia','Luca'],['Matteo','Luigi'],['Gabriele','Alessio']] },
+  { serata:4, giornata:7, partite:[['Stefano','Mario'],['Domenico','Luca'],['Giulio','Luigi'],['Mattia','Alessio'],['Matteo','Gabriele']] },
+  { serata:4, giornata:8, partite:[['Stefano','Luca'],['Mario','Luigi'],['Domenico','Alessio'],['Giulio','Gabriele'],['Mattia','Matteo']] },
+  { serata:5, giornata:9, partite:[['Stefano','Luigi'],['Luca','Alessio'],['Mario','Gabriele'],['Domenico','Matteo'],['Giulio','Mattia']] },
+  { serata:5, giornata:10, partite:[['Alessio','Stefano'],['Gabriele','Luigi'],['Matteo','Luca'],['Mattia','Mario'],['Giulio','Domenico']] },
+  { serata:6, giornata:11, partite:[['Gabriele','Stefano'],['Matteo','Alessio'],['Mattia','Luigi'],['Giulio','Luca'],['Domenico','Mario']] },
+  { serata:6, giornata:12, partite:[['Matteo','Stefano'],['Mattia','Gabriele'],['Giulio','Alessio'],['Domenico','Luigi'],['Mario','Luca']] },
+  { serata:7, giornata:13, partite:[['Mattia','Stefano'],['Giulio','Matteo'],['Domenico','Gabriele'],['Mario','Alessio'],['Luca','Luigi']] },
+  { serata:7, giornata:14, partite:[['Giulio','Stefano'],['Domenico','Mattia'],['Mario','Matteo'],['Luca','Gabriele'],['Luigi','Alessio']] },
+  { serata:8, giornata:15, partite:[['Domenico','Stefano'],['Mario','Giulio'],['Luca','Mattia'],['Luigi','Matteo'],['Alessio','Gabriele']] },
+  { serata:8, giornata:16, partite:[['Mario','Stefano'],['Luca','Domenico'],['Luigi','Giulio'],['Alessio','Mattia'],['Gabriele','Matteo']] },
+  { serata:9, giornata:17, partite:[['Luca','Stefano'],['Luigi','Mario'],['Alessio','Domenico'],['Gabriele','Giulio'],['Matteo','Mattia']] },
+  { serata:9, giornata:18, partite:[['Luigi','Stefano'],['Alessio','Luca'],['Gabriele','Mario'],['Matteo','Domenico'],['Mattia','Giulio']] }
+];
 
 // ==========================================
 // STATE
@@ -349,6 +557,7 @@ function lineupPlayer(teamId,key){
 function isAdmin(){
   return state.profile?.role === 'admin';
 }
+
 
 // ==========================================
 // AUTH
@@ -519,6 +728,60 @@ async function createResult(){
   toast('Risultato salvato');
 }
 
+async function deleteMatch(id){
+
+  const confirmDelete = confirm('Eliminare il risultato?');
+
+  if(!confirmDelete) return;
+
+  const { error } = await supabaseClient
+    .from('matches')
+    .delete()
+    .eq('id', id);
+
+  if(error){
+    toast(error.message);
+    return;
+  }
+
+  toast('Risultato eliminato');
+}
+
+async function deletePlayer(id){
+  if(!confirm('Eliminare il giocatore?')) return;
+  const { error } = await supabaseClient.from('players').delete().eq('id', id);
+  if(error){ toast(error.message); return; }
+  toast('Giocatore eliminato');
+}
+
+async function updatePlayer(){
+  const id = Number(qs('#ep-id').value);
+  const payload = {
+    name: qs('#ep-name').value,
+    role: qs('#ep-role').value,
+    ovr: Number(qs('#ep-ovr').value || 0),
+    value: Number(qs('#ep-value').value || 0),
+    team_id: Number(qs('#ep-team').value),
+    injured: qs('#ep-injured').value === 'true'
+  };
+  const { error } = await supabaseClient.from('players').update(payload).eq('id', id);
+  if(error){ toast(error.message); return; }
+  closeModal();
+  toast('Giocatore aggiornato');
+}
+
+async function updateTeam(){
+  const id = Number(qs('#et-id').value);
+  const payload = {
+    formation: qs('#et-formation').value,
+    credits: Number(qs('#et-credits').value || 0)
+  };
+  const { error } = await supabaseClient.from('teams').update(payload).eq('id', id);
+  if(error){ toast(error.message); return; }
+  closeModal();
+  toast('Squadra aggiornata');
+}
+
 // ==========================================
 // RENDER
 // ==========================================
@@ -671,6 +934,65 @@ function renderStandings(){
   `;
 }
 
+function renderMatches(){
+
+  const grouped = {};
+
+  state.matches.forEach(match => {
+
+    if(!grouped[match.matchday]){
+      grouped[match.matchday] = [];
+    }
+
+    grouped[match.matchday].push(match);
+
+  });
+
+  return Object.entries(grouped)
+    .sort((a,b)=>Number(a[0]) - Number(b[0]))
+    .map(([day,matches])=>`
+
+      <div class="card" style="margin-bottom:16px">
+
+        <h3 style="margin-bottom:14px">
+          Giornata ${day}
+        </h3>
+
+        ${matches.map(match=>{
+
+          const home = state.teams.find(t=>t.id===match.home_team);
+          const away = state.teams.find(t=>t.id===match.away_team);
+
+          return `
+            <div class="player-row">
+
+              <div>
+                <strong>${home?.name || '??'}</strong>
+                ${match.home_goals} - ${match.away_goals}
+                <strong>${away?.name || '??'}</strong>
+              </div>
+
+              ${isAdmin() ? `
+                <div style="display:flex;gap:8px">
+
+                  <button class="btn btn-danger"
+                    onclick="deleteMatch(${match.id})">
+                    Elimina
+                  </button>
+
+                </div>
+              `:''}
+
+            </div>
+          `;
+
+        }).join('')}
+
+      </div>
+
+    `).join('');
+}
+
 function renderTeamDetail(){
 
   const team = currentTeam();
@@ -688,8 +1010,9 @@ function renderTeamDetail(){
           <div style="color:var(--muted)">${team.formation}</div>
         </div>
 
-        <div class="badge">
-          ${players.length} giocatori
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="badge">${players.length} giocatori</div>
+          ${isAdmin() ? `<button class="btn" onclick="openEditTeam(${team.id})">✏️ Modifica squadra</button>` : ''}
         </div>
       </div>
     </div>
@@ -742,14 +1065,56 @@ function renderTeamDetail(){
             </div>
 
             <div style="display:flex;gap:8px;align-items:center">
-              <div class="badge">OVR ${player.ovr}</div>
-            </div>
+            <div class="badge">OVR ${player.ovr}</div>
+            ${isAdmin() ? `
+              <button class="btn" style="padding:6px 10px;font-size:12px" onclick="openEditPlayer(${player.id})">✏️</button>
+              <button class="btn btn-danger" style="padding:6px 10px;font-size:12px" onclick="deletePlayer(${player.id})">🗑️</button>
+            ` : ''}
+          </div>
           </div>
         `).join('')}
       </div>
 
     </div>
   `;
+}
+
+function renderCalendar(){
+  const serateRaggruppate = {};
+  CALENDAR.forEach(item => {
+    if(!serateRaggruppate[item.serata]) serateRaggruppate[item.serata] = [];
+    serateRaggruppate[item.serata].push(item);
+  });
+
+  return Object.entries(serateRaggruppate).map(([serata, giorni]) => `
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-bottom:14px">Serata ${serata}</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${giorni.map(g => `
+          <div style="border:1px solid var(--border);border-radius:12px;padding:12px">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase">
+              Giornata ${g.giornata}
+            </div>
+            ${g.partite.map(([casa, ospite]) => {
+              const match = state.matches.find(m => {
+                const hTeam = state.teams.find(t => t.name.toLowerCase().includes(casa.toLowerCase()));
+                const aTeam = state.teams.find(t => t.name.toLowerCase().includes(ospite.toLowerCase()));
+                return hTeam && aTeam && m.home_team === hTeam.id && m.away_team === aTeam.id;
+              });
+              const scoreStr = match ? `<span style="color:var(--green);font-weight:700">${match.home_goals}–${match.away_goals}</span>` : `<span style="color:var(--muted)">vs</span>`;
+              return `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+                  <span>${casa}</span>
+                  ${scoreStr}
+                  <span>${ospite}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
 }
 
 function renderModal(){
@@ -816,6 +1181,8 @@ function renderApp(){
         <button class="${state.page==='home'?'active':''}" onclick="navigate('home')">Home</button>
         <button class="${state.page==='teams'?'active':''}" onclick="navigate('teams')">Squadre</button>
         <button class="${state.page==='standings'?'active':''}" onclick="navigate('standings')">Classifica</button>
+        <button class="${state.page==='matches'?'active':''}" onclick="navigate('matches')">Risultati</button>
+        <button class="${state.page==='calendar'?'active':''}" onclick="navigate('calendar')">Calendario</button>
       </div>
 
       <div class="page">
@@ -826,7 +1193,12 @@ function renderApp(){
             ? renderHome()
             : state.page==='teams'
               ? renderTeams()
-              : renderStandings()
+              : state.page==='matches'
+                ? renderMatches()
+                : state.page==='calendar'
+                  ? renderCalendar()
+                  : renderStandings()
+
         }
 
       </div>
@@ -936,6 +1308,95 @@ function chooseLineupPlayer(teamId,positionKey){
     `).join('')}
 
   `);
+}
+
+function openEditPlayer(playerId){
+  const player = state.players.find(p => p.id === playerId);
+  if(!player) return;
+
+  openModal(() => `
+    <h2 style="margin-bottom:18px">Modifica Giocatore</h2>
+    <input type="hidden" id="ep-id" value="${player.id}" />
+
+    <div class="field">
+      <label class="label">Nome</label>
+      <input id="ep-name" class="input" value="${player.name}" />
+    </div>
+
+    <div class="field">
+      <label class="label">Squadra</label>
+      <select id="ep-team" class="input">
+        ${state.teams.map(t => `<option value="${t.id}" ${t.id === player.team_id ? 'selected' : ''}>${t.name}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="label">Ruolo</label>
+      <select id="ep-role" class="input">
+        ${Object.entries(ROLES).map(([k,v]) => `<option value="${k}" ${k === player.role ? 'selected' : ''}>${v}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="label">OVR</label>
+      <input id="ep-ovr" class="input" type="number" value="${player.ovr}" />
+    </div>
+
+    <div class="field">
+      <label class="label">Valore (crediti)</label>
+      <input id="ep-value" class="input" type="number" value="${player.value}" />
+    </div>
+
+    <div class="field">
+      <label class="label">Infortunato</label>
+      <select id="ep-injured" class="input">
+        <option value="false" ${!player.injured ? 'selected' : ''}>No</option>
+        <option value="true" ${player.injured ? 'selected' : ''}>Sì</option>
+      </select>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn" onclick="closeModal()">Annulla</button>
+      <button class="btn btn-primary" onclick="updatePlayer()">Salva</button>
+    </div>
+  `);
+}
+
+function openEditTeam(teamId){
+  const team = state.teams.find(t => t.id === teamId);
+  if(!team) return;
+
+  openModal(() => `
+    <h2 style="margin-bottom:18px">Modifica Squadra</h2>
+    <input type="hidden" id="et-id" value="${team.id}" />
+
+    <div class="field">
+      <label class="label">Formazione</label>
+      <select id="et-formation" class="input" onchange="updateFormationPreview(this.value)">
+        ${Object.keys(FORMATIONS).map(f => `<option value="${f}" ${f === team.formation ? 'selected' : ''}>${f}</option>`).join('')}
+      </select>
+      <div id="formation-preview" style="font-size:12px;color:var(--muted);margin-top:6px">
+        ${FORMATIONS[team.formation].length - 1} giocatori di movimento + 1 portiere
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Crediti rimanenti</label>
+      <input id="et-credits" class="input" type="number" value="${team.credits ?? 0}" />
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn" onclick="closeModal()">Annulla</button>
+      <button class="btn btn-primary" onclick="updateTeam()">Salva</button>
+    </div>
+  `);
+}
+
+function updateFormationPreview(formation){
+  const el = document.getElementById('formation-preview');
+  if(el && FORMATIONS[formation]){
+    el.textContent = `${FORMATIONS[formation].length - 1} giocatori di movimento + 1 portiere`;
+  }
 }
 
 function openResultModal(){
