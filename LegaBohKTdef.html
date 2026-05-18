@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lega FC26 Pro</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f5f7f8;
+  --card:#fff;
+  --border:#e3e3e3;
+  --green:#1d9e75;
+  --green-dark:#0f6e56;
+  --danger:#b42323;
+  --text:#222;
+  --muted:#777;
+  --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Inter,system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+button,input,select{
+  font:inherit;
+}
+.app{
+  max-width:1200px;
+  margin:auto;
+  min-height:100vh;
+}
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px;
+  background:#fff;
+  border-bottom:1px solid var(--border);
+  position:sticky;
+  top:0;
+  z-index:20;
+}
+.logo{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.logo-circle{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  background:var(--green);
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+}
+.nav{
+  display:flex;
+  gap:8px;
+  padding:14px 18px;
+  overflow:auto;
+}
+.nav button{
+  border:none;
+  background:white;
+  padding:10px 16px;
+  border-radius:999px;
+  cursor:pointer;
+  border:1px solid var(--border);
+}
+.nav button.active{
+  background:var(--green);
+  color:white;
+  border-color:var(--green);
+}
+.page{
+  padding:18px;
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  gap:16px;
+}
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+  padding:16px;
+}
+.team-card{
+  cursor:pointer;
+  transition:.2s;
+}
+.team-card:hover{
+  transform:translateY(-2px);
+}
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border-radius:999px;
+  padding:4px 10px;
+  background:#eff8f4;
+  color:var(--green-dark);
+  font-size:12px;
+}
+.btn{
+  border:none;
+  background:white;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px 14px;
+  cursor:pointer;
+}
+.btn-primary{
+  background:var(--green);
+  color:white;
+  border-color:var(--green);
+}
+.btn-danger{
+  background:#ffe9e9;
+  color:var(--danger);
+  border-color:#ffcbcb;
+}
+.input{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  margin-top:6px;
+}
+.label{
+  font-size:13px;
+  color:var(--muted);
+}
+.modal-bg{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+}
+.modal{
+  width:min(500px,92vw);
+  max-height:90vh;
+  overflow:auto;
+  background:white;
+  border-radius:24px;
+  padding:24px;
+}
+.field{
+  margin-bottom:14px;
+}
+.player-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 0;
+  border-bottom:1px solid var(--border);
+}
+.field-view{
+  width:100%;
+  max-width:420px;
+  height:560px;
+  border-radius:20px;
+  margin:auto;
+  background:linear-gradient(180deg,#2f7d45,#184d2d);
+  position:relative;
+  overflow:hidden;
+}
+.pos{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  text-align:center;
+}
+.pos-shirt{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  font-size:10px;
+  font-weight:700;
+  margin:auto;
+  cursor:pointer;
+}
+.pos-name{
+  color:white;
+  font-size:10px;
+  background:rgba(0,0,0,.45);
+  border-radius:999px;
+  padding:3px 8px;
+  margin-top:4px;
+}
+.table-wrap{
+  overflow:auto;
+}
+.table{
+  width:100%;
+  border-collapse:collapse;
+}
+.table th,.table td{
+  padding:10px;
+  border-bottom:1px solid var(--border);
+  text-align:left;
+}
+.auth-screen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+.auth-box{
+  width:min(420px,100%);
+  background:white;
+  border-radius:24px;
+  padding:28px;
+  border:1px solid var(--border);
+}
+.toast{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  background:black;
+  color:white;
+  padding:12px 18px;
+  border-radius:12px;
+  z-index:999;
+}
+@media(max-width:700px){
+  .topbar{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:12px;
+  }
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script>
+// ==========================================
+// CONFIG
+// ==========================================
+const SUPABASE_URL = 'https://rmgaqketoncxjmjaypun.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtZ2Fxa2V0b25jeGptamF5cHVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTMzNzMsImV4cCI6MjA5NDY4OTM3M30.K7ut_0a5wUk03F9xhK1HexDqOiBSB12P2HHdlPTnJBI';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ==========================================
+// STATIC DATA
+// ==========================================
+const FORMATIONS = {
+  '4-3-3':[
+    {k:'GK',x:50,y:88,r:['P']},
+    {k:'RB',x:12,y:72,r:['TD']},
+    {k:'CB1',x:35,y:70,r:['DC']},
+    {k:'CB2',x:65,y:70,r:['DC']},
+    {k:'LB',x:88,y:72,r:['TS']},
+    {k:'CM1',x:28,y:52,r:['CC','CDC','COC']},
+    {k:'CM2',x:50,y:48,r:['CC','CDC','COC']},
+    {k:'CM3',x:72,y:52,r:['CC','CDC','COC']},
+    {k:'RW',x:15,y:30,r:['AD']},
+    {k:'ST',x:50,y:20,r:['ATT']},
+    {k:'LW',x:85,y:30,r:['AS']}
+  ]
+};
+
+const ROLES = {
+  P:'Portiere',
+  TD:'Terzino Destro',
+  TS:'Terzino Sinistro',
+  DC:'Difensore Centrale',
+  CC:'Centrocampista',
+  CDC:'Mediano',
+  COC:'Trequartista',
+  AD:'Ala Destra',
+  AS:'Ala Sinistra',
+  ATT:'Attaccante'
+};
+
+// ==========================================
+// STATE
+// ==========================================
+const state = {
+  user:null,
+  profile:null,
+  page:'home',
+  teams:[],
+  players:[],
+  matches:[],
+  lineups:[],
+  selectedTeam:null,
+  modal:null,
+  loading:true
+};
+
+// ==========================================
+// HELPERS
+// ==========================================
+function qs(s){return document.querySelector(s)}
+function ce(tag){return document.createElement(tag)}
+
+function toast(message){
+  const root = qs('#toast-root');
+  const el = ce('div');
+  el.className = 'toast';
+  el.textContent = message;
+  root.appendChild(el);
+  setTimeout(()=>el.remove(),2500);
+}
+
+function openModal(render){
+  state.modal = render;
+  renderApp();
+}
+
+function closeModal(){
+  state.modal = null;
+  renderApp();
+}
+
+function currentTeam(){
+  return state.teams.find(t=>t.id===state.selectedTeam);
+}
+
+function teamPlayers(teamId){
+  return state.players.filter(p=>p.team_id===teamId);
+}
+
+function lineupPlayer(teamId,key){
+  const row = state.lineups.find(l=>l.team_id===teamId && l.position_key===key);
+  if(!row) return null;
+  return state.players.find(p=>p.id===row.player_id);
+}
+
+function isAdmin(){
+  return state.profile?.role === 'admin';
+}
+
+// ==========================================
+// AUTH
+// ==========================================
+async function login(){
+  const email = qs('#login-email').value;
+  const password = qs('#login-password').value;
+
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if(error){
+    toast(error.message);
+    return;
+  }
+
+  await bootstrap();
+}
+
+async function logout(){
+  await supabaseClient.auth.signOut();
+  location.reload();
+}
+
+// ==========================================
+// LOAD DATA
+// ==========================================
+async function bootstrap(){
+  state.loading = true;
+  renderApp();
+
+  const { data:{user} } = await supabaseClient.auth.getUser();
+
+  if(!user){
+    state.loading = false;
+    renderApp();
+    return;
+  }
+
+  state.user = user;
+
+  const [
+    profileRes,
+    teamsRes,
+    playersRes,
+    matchesRes,
+    lineupsRes
+  ] = await Promise.all([
+    supabaseClient.from('profiles').select('*').eq('id',user.id).single(),
+    supabaseClient.from('teams').select('*').order('id'),
+    supabaseClient.from('players').select('*').order('name'),
+    supabaseClient.from('matches').select('*').order('matchday'),
+    supabaseClient.from('lineups').select('*')
+  ]);
+
+  state.profile = profileRes.data;
+  state.teams = teamsRes.data || [];
+  state.players = playersRes.data || [];
+  state.matches = matchesRes.data || [];
+  state.lineups = lineupsRes.data || [];
+
+  subscribeRealtime();
+
+  state.loading = false;
+  renderApp();
+}
+
+// ==========================================
+// REALTIME
+// ==========================================
+function subscribeRealtime(){
+  supabaseClient
+  .channel('players-live')
+  .on('postgres_changes',{event:'*',schema:'public',table:'players'},bootstrap)
+  .subscribe();
+
+  supabaseClient
+  .channel('teams-live')
+  .on('postgres_changes',{event:'*',schema:'public',table:'teams'},bootstrap)
+  .subscribe();
+
+  supabaseClient
+  .channel('matches-live')
+  .on('postgres_changes',{event:'*',schema:'public',table:'matches'},bootstrap)
+  .subscribe();
+
+  supabaseClient
+  .channel('lineups-live')
+  .on('postgres_changes',{event:'*',schema:'public',table:'lineups'},bootstrap)
+  .subscribe();
+}
+
+// ==========================================
+// CRUD
+// ==========================================
+async function createPlayer(){
+  const payload = {
+    team_id:Number(qs('#p-team').value),
+    name:qs('#p-name').value,
+    role:qs('#p-role').value,
+    ovr:Number(qs('#p-ovr').value || 0),
+    value:Number(qs('#p-value').value || 0),
+    goals:0,
+    assists:0,
+    injured:false
+  };
+
+  const { error } = await supabaseClient.from('players').insert(payload);
+
+  if(error){
+    toast(error.message);
+    return;
+  }
+
+  closeModal();
+  toast('Giocatore creato');
+}
+
+async function saveLineup(teamId,positionKey,playerId){
+
+  await supabaseClient
+  .from('lineups')
+  .delete()
+  .eq('team_id',teamId)
+  .eq('player_id',playerId);
+
+  const existing = state.lineups.find(l=>l.team_id===teamId && l.position_key===positionKey);
+
+  if(existing){
+    await supabaseClient
+    .from('lineups')
+    .update({player_id:playerId})
+    .eq('id',existing.id);
+  }else{
+    await supabaseClient
+    .from('lineups')
+    .insert({
+      team_id:teamId,
+      position_key:positionKey,
+      player_id:playerId
+    });
+  }
+
+  closeModal();
+  toast('Formazione aggiornata');
+}
+
+async function createResult(){
+  const payload = {
+    matchday:Number(qs('#m-day').value),
+    home_team:Number(qs('#m-home').value),
+    away_team:Number(qs('#m-away').value),
+    home_goals:Number(qs('#m-hg').value),
+    away_goals:Number(qs('#m-ag').value),
+    played:true
+  };
+
+  const { error } = await supabaseClient.from('matches').insert(payload);
+
+  if(error){
+    toast(error.message);
+    return;
+  }
+
+  closeModal();
+  toast('Risultato salvato');
+}
+
+// ==========================================
+// RENDER
+// ==========================================
+function renderLogin(){
+  return `
+    <div class="auth-screen">
+      <div class="auth-box">
+        <div class="logo" style="margin-bottom:24px">
+          <div class="logo-circle"><i class="ti ti-ball-football"></i></div>
+          <div>
+            <h2>Lega FC26 Pro</h2>
+            <div style="color:var(--muted)">Login alla lega</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Email</label>
+          <input id="login-email" class="input" type="email" />
+        </div>
+
+        <div class="field">
+          <label class="label">Password</label>
+          <input id="login-password" class="input" type="password" />
+        </div>
+
+        <button class="btn btn-primary" style="width:100%" onclick="login()">
+          Accedi
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderHome(){
+
+  const totalValue = state.players.reduce((a,p)=>a+(p.value||0),0);
+
+  return `
+    <div class="grid">
+      <div class="card">
+        <h3>Squadre</h3>
+        <div style="font-size:42px;font-weight:700;margin-top:8px">${state.teams.length}</div>
+      </div>
+
+      <div class="card">
+        <h3>Giocatori</h3>
+        <div style="font-size:42px;font-weight:700;margin-top:8px">${state.players.length}</div>
+      </div>
+
+      <div class="card">
+        <h3>Valore Totale</h3>
+        <div style="font-size:42px;font-weight:700;margin-top:8px">€${totalValue}M</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderTeams(){
+  return `
+    <div class="grid">
+      ${state.teams.map(team=>{
+
+        const players = teamPlayers(team.id);
+        const value = players.reduce((a,p)=>a+(p.value||0),0);
+
+        return `
+          <div class="card team-card" onclick="openTeam(${team.id})">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <h3>${team.name}</h3>
+                <div style="color:var(--muted)">${players.length} giocatori</div>
+              </div>
+              <div class="badge">€${value}M</div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderStandings(){
+
+  const standings = state.teams.map(team=>{
+
+    let pts=0;
+    let gf=0;
+    let ga=0;
+
+    state.matches.forEach(match=>{
+
+      if(!match.played) return;
+
+      if(match.home_team===team.id){
+        gf += match.home_goals;
+        ga += match.away_goals;
+
+        if(match.home_goals>match.away_goals) pts += 3;
+        else if(match.home_goals===match.away_goals) pts += 1;
+      }
+
+      if(match.away_team===team.id){
+        gf += match.away_goals;
+        ga += match.home_goals;
+
+        if(match.away_goals>match.home_goals) pts += 3;
+        else if(match.away_goals===match.home_goals) pts += 1;
+      }
+
+    });
+
+    return {
+      ...team,
+      pts,
+      gf,
+      ga,
+      diff:gf-ga
+    };
+
+  }).sort((a,b)=>b.pts-a.pts || b.diff-a.diff);
+
+  return `
+    <div class="card table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Squadra</th>
+            <th>GF</th>
+            <th>GA</th>
+            <th>DR</th>
+            <th>PTS</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${standings.map((t,i)=>`
+            <tr>
+              <td>${i+1}</td>
+              <td><strong>${t.name}</strong></td>
+              <td>${t.gf}</td>
+              <td>${t.ga}</td>
+              <td>${t.diff}</td>
+              <td><strong>${t.pts}</strong></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderTeamDetail(){
+
+  const team = currentTeam();
+  const players = teamPlayers(team.id);
+
+  return `
+    <div style="margin-bottom:16px">
+      <button class="btn" onclick="goBack()">← Indietro</button>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap">
+        <div>
+          <h2>${team.name}</h2>
+          <div style="color:var(--muted)">${team.formation}</div>
+        </div>
+
+        <div class="badge">
+          ${players.length} giocatori
+        </div>
+      </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+
+      <div class="card">
+        <h3 style="margin-bottom:16px">Formazione</h3>
+
+        <div class="field-view">
+          ${FORMATIONS[team.formation].map(pos=>{
+
+            const player = lineupPlayer(team.id,pos.k);
+
+            return `
+              <div class="pos" style="left:${pos.x}%;top:${pos.y}%">
+                <div class="pos-shirt"
+                  style="background:${team.color}"
+                  onclick="chooseLineupPlayer(${team.id},'${pos.k}')">
+                  ${player ? player.name.slice(0,3).toUpperCase() : pos.k}
+                </div>
+                <div class="pos-name">
+                  ${player ? player.name : 'Vuoto'}
+                </div>
+              </div>
+            `;
+
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3>Rosa</h3>
+
+          ${isAdmin() ? `
+            <button class="btn btn-primary" onclick="openCreatePlayer()">
+              + Giocatore
+            </button>
+          `:''}
+        </div>
+
+        ${players.map(player=>`
+          <div class="player-row">
+            <div>
+              <strong>${player.name}</strong>
+              <div style="font-size:12px;color:var(--muted)">
+                ${ROLES[player.role] || player.role}
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:center">
+              <div class="badge">OVR ${player.ovr}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+    </div>
+  `;
+}
+
+function renderModal(){
+  if(!state.modal) return '';
+
+  return `
+    <div class="modal-bg" onclick="closeModalBackground(event)">
+      <div class="modal">
+        ${state.modal()}
+      </div>
+    </div>
+  `;
+}
+
+function renderApp(){
+
+  const app = qs('#app');
+  const modalRoot = qs('#modal-root');
+
+  if(state.loading){
+    app.innerHTML = '<div style="padding:40px">Caricamento...</div>';
+    return;
+  }
+
+  if(!state.user){
+    app.innerHTML = renderLogin();
+    return;
+  }
+
+  app.innerHTML = `
+
+    <div class="app">
+
+      <div class="topbar">
+        <div class="logo">
+          <div class="logo-circle">
+            <i class="ti ti-ball-football"></i>
+          </div>
+
+          <div>
+            <h2>Lega FC26 Pro</h2>
+            <div style="font-size:13px;color:var(--muted)">
+              ${state.profile?.username || ''}
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+
+          ${isAdmin() ? `
+            <button class="btn btn-primary" onclick="openResultModal()">
+              + Risultato
+            </button>
+          `:''}
+
+          <button class="btn" onclick="logout()">
+            Logout
+          </button>
+
+        </div>
+      </div>
+
+      <div class="nav">
+        <button class="${state.page==='home'?'active':''}" onclick="navigate('home')">Home</button>
+        <button class="${state.page==='teams'?'active':''}" onclick="navigate('teams')">Squadre</button>
+        <button class="${state.page==='standings'?'active':''}" onclick="navigate('standings')">Classifica</button>
+      </div>
+
+      <div class="page">
+
+        ${state.selectedTeam
+          ? renderTeamDetail()
+          : state.page==='home'
+            ? renderHome()
+            : state.page==='teams'
+              ? renderTeams()
+              : renderStandings()
+        }
+
+      </div>
+
+    </div>
+
+  `;
+
+  modalRoot.innerHTML = renderModal();
+}
+
+// ==========================================
+// NAVIGATION
+// ==========================================
+function navigate(page){
+  state.page = page;
+  state.selectedTeam = null;
+  renderApp();
+}
+
+function openTeam(id){
+  state.selectedTeam = id;
+  renderApp();
+}
+
+function goBack(){
+  state.selectedTeam = null;
+  renderApp();
+}
+
+// ==========================================
+// MODALS
+// ==========================================
+function closeModalBackground(e){
+  if(e.target.classList.contains('modal-bg')){
+    closeModal();
+  }
+}
+
+function openCreatePlayer(){
+  openModal(()=>`
+
+    <h2 style="margin-bottom:18px">Nuovo Giocatore</h2>
+
+    <div class="field">
+      <label class="label">Squadra</label>
+      <select id="p-team" class="input">
+        ${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="label">Nome</label>
+      <input id="p-name" class="input" />
+    </div>
+
+    <div class="field">
+      <label class="label">Ruolo</label>
+      <select id="p-role" class="input">
+        ${Object.entries(ROLES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="label">OVR</label>
+      <input id="p-ovr" class="input" type="number" />
+    </div>
+
+    <div class="field">
+      <label class="label">Valore</label>
+      <input id="p-value" class="input" type="number" />
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn" onclick="closeModal()">Annulla</button>
+      <button class="btn btn-primary" onclick="createPlayer()">Salva</button>
+    </div>
+
+  `);
+}
+
+function chooseLineupPlayer(teamId,positionKey){
+
+  const formationPos = FORMATIONS[currentTeam().formation].find(p=>p.k===positionKey);
+
+  const players = teamPlayers(teamId)
+    .filter(p=>formationPos.r.includes(p.role));
+
+  openModal(()=>`
+
+    <h2 style="margin-bottom:18px">Seleziona giocatore</h2>
+
+    ${players.map(player=>`
+      <div class="player-row">
+        <div>
+          <strong>${player.name}</strong>
+          <div style="font-size:12px;color:var(--muted)">
+            ${ROLES[player.role]}
+          </div>
+        </div>
+
+        <button class="btn btn-primary"
+          onclick="saveLineup(${teamId},'${positionKey}',${player.id})">
+          Seleziona
+        </button>
+      </div>
+    `).join('')}
+
+  `);
+}
+
+function openResultModal(){
+
+  openModal(()=>`
+
+    <h2 style="margin-bottom:18px">Nuovo Risultato</h2>
+
+    <div class="field">
+      <label class="label">Giornata</label>
+      <input id="m-day" class="input" type="number" value="1" />
+    </div>
+
+    <div class="field">
+      <label class="label">Casa</label>
+      <select id="m-home" class="input">
+        ${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="label">Gol Casa</label>
+      <input id="m-hg" class="input" type="number" value="0" />
+    </div>
+
+    <div class="field">
+      <label class="label">Ospite</label>
+      <select id="m-away" class="input">
+        ${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="label">Gol Ospite</label>
+      <input id="m-ag" class="input" type="number" value="0" />
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn" onclick="closeModal()">Annulla</button>
+      <button class="btn btn-primary" onclick="createResult()">Salva</button>
+    </div>
+
+  `);
+
+}
+
+// ==========================================
+// START
+// ==========================================
+bootstrap();
+
+</script>
+</body>
+</html>
