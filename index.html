@@ -587,6 +587,27 @@ async function logout(){
 // ==========================================
 // LOAD DATA
 // ==========================================
+
+async function silentRefresh(){
+  if(state.modal) return;
+  
+  const [teamsRes, playersRes, matchesRes, lineupsRes] = await Promise.all([
+    supabaseClient.from('teams').select('*').order('id'),
+    supabaseClient.from('players').select('*').order('name'),
+    supabaseClient.from('matches').select('*').order('matchday'),
+    supabaseClient.from('lineups').select('*')
+  ]);
+
+  state.teams = teamsRes.data || [];
+  state.players = playersRes.data || [];
+  state.matches = matchesRes.data || [];
+  state.lineups = lineupsRes.data || [];
+
+  renderApp();
+}
+
+setInterval(silentRefresh, 3000);
+
 async function bootstrap(){
   state.loading = true;
   renderApp();
@@ -632,25 +653,14 @@ async function bootstrap(){
 // ==========================================
 function subscribeRealtime(){
   supabaseClient
-  .channel('players-live')
-  .on('postgres_changes',{event:'*',schema:'public',table:'players'},bootstrap)
-  .subscribe();
-
-  supabaseClient
-  .channel('teams-live')
-  .on('postgres_changes',{event:'*',schema:'public',table:'teams'},bootstrap)
-  .subscribe();
-
-  supabaseClient
-  .channel('matches-live')
-  .on('postgres_changes',{event:'*',schema:'public',table:'matches'},bootstrap)
-  .subscribe();
-
-  supabaseClient
-  .channel('lineups-live')
-  .on('postgres_changes',{event:'*',schema:'public',table:'lineups'},bootstrap)
+  .channel('db-changes')
+  .on('postgres_changes',{event:'*',schema:'public',table:'players'}, silentRefresh)
+  .on('postgres_changes',{event:'*',schema:'public',table:'teams'}, silentRefresh)
+  .on('postgres_changes',{event:'*',schema:'public',table:'matches'}, silentRefresh)
+  .on('postgres_changes',{event:'*',schema:'public',table:'lineups'}, silentRefresh)
   .subscribe();
 }
+
 
 // ==========================================
 // CRUD
