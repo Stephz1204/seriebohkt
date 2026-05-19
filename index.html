@@ -493,69 +493,37 @@ const ROLES = {
     ATT:'🔥'
   };
 
-    function renderShirt(team, role){
-
-  const roleIcon = {
-    P:'🧤',
-    TD:'🛡️',
-    TS:'🛡️',
-    DC:'🛡️',
-    CC:'⚙️',
-    CDC:'⚙️',
-    COC:'🎯',
-    AD:'⚡',
-    AS:'⚡',
-    ATT:'🔥'
-  };
-
-  const initials = team.name
-    .split(' ')
-    .map(w => w[0])
-    .join('')
-    .substring(0,3)
-    .toUpperCase();
+function renderShirt(team, role){
 
   return `
     <div style="
       width:42px;
-      height:42px;
-      border-radius:12px 12px 14px 14px;
+      height:48px;
       background:${team.color};
-      position:relative;
+      clip-path:polygon(
+        18% 0%,
+        32% 0%,
+        38% 10%,
+        62% 10%,
+        68% 0%,
+        82% 0%,
+        100% 22%,
+        88% 34%,
+        88% 100%,
+        12% 100%,
+        12% 34%,
+        0% 22%
+      );
       display:flex;
-      flex-direction:column;
       align-items:center;
       justify-content:center;
       color:white;
-      font-weight:700;
-      box-shadow:0 3px 8px rgba(0,0,0,.25);
+      font-size:10px;
+      font-weight:800;
       border:2px solid rgba(255,255,255,.25);
-      overflow:hidden;
-      flex-shrink:0;
+      box-shadow:0 2px 8px rgba(0,0,0,.25);
     ">
-
-      <div style="
-        position:absolute;
-        top:0;
-        width:100%;
-        height:10px;
-        background:rgba(255,255,255,.18);
-      "></div>
-
-      <div style="
-        font-size:12px;
-        margin-top:2px;
-      ">
-        ${roleIcon[role] || '⚽'}
-      </div>
-
-      <div style="
-        font-size:9px;
-        letter-spacing:.5px;
-      ">
-        ${initials}
-      </div>
-
+      ${team.name.substring(0,2).toUpperCase()}
     </div>
   `;
 }
@@ -1269,20 +1237,11 @@ function renderTeamDetail(){
                   ondrop="dropPlayer(event, ${team.id}, '${pos.k}')">
 
                 ${
-                  player.photo_url
-                  ? `
-                    <img src="${player.photo_url}"
-                      style="
-                        width:100%;
-                        height:100%;
-                        border-radius:50%;
-                        object-fit:cover;
-                      ">
-                  `
-                  : generateShirt(team.name, team.color, player.role)
-                }
-
-                </div>
+                    player
+                      ? renderShirt(team, player.role)
+                      : ''
+                  }
+                                  </div>
 
                 <div class="pos-name">
                   ${player ? player.name : 'Vuoto'}
@@ -1701,12 +1660,10 @@ function renderPlayersGroup(title, players){
           <div style="display:flex;align-items:center;gap:10px">
 
             ${
-              player.photo_url
-              ? `
-                ${renderShirt(team, player.role)}
-              `
-              : generateShirt(team.name, team.color, player.role)
-            }
+                player
+                  ? renderShirt(team, player.role)
+                  : ''
+              }
 
             <div>
               <strong>${player.name}</strong>
