@@ -528,6 +528,31 @@ h1, h2, h3, h4 {
     padding: 2px 4px;
   }
 }
+  /* STILI PER RIGHE DELLA ROSA COLORATE PER RUOLO */
+.player-row-portieri {
+  background: rgba(100, 100, 110, 0.15);
+  border-left: 3px solid #888888;
+}
+.player-row-difensori {
+  background: rgba(0, 255, 136, 0.08);
+  border-left: 3px solid #00ff88;
+}
+.player-row-centrocampisti {
+  background: rgba(0, 150, 255, 0.08);
+  border-left: 3px solid #0096ff;
+}
+.player-row-attaccanti {
+  background: rgba(255, 68, 68, 0.08);
+  border-left: 3px solid #ff4444;
+}
+
+/* Versione hover per feedback visivo */
+.player-row-portieri:hover,
+.player-row-difensori:hover,
+.player-row-centrocampisti:hover,
+.player-row-attaccanti:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
   
   
 </style>
@@ -758,8 +783,43 @@ const ROLES = {
   AS:'Ala Sinistra',
   RM:'Esterno Destro',
   LM:'Esterno Sinistro',
-  ATT:'Attaccante'
+  ATT:'Punta'
 };
+
+  // Ordine dei ruoli per la visualizzazione
+const roleOrder = {
+  'P': 1,
+  'DC': 2,
+  'TD': 3,
+  'TS': 4,
+  'CDC': 5,
+  'CC': 6,
+  'COC': 7,
+  'RM': 8,
+  'LM': 9,
+  'AD': 10,
+  'AS': 11,
+  'ATT': 12
+};
+
+// Funzione per ordinare i giocatori per ruolo
+function sortPlayersByRole(players) {
+  return [...players].sort((a, b) => {
+    const orderA = roleOrder[a.role] || 99;
+    const orderB = roleOrder[b.role] || 99;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+// Funzione per ottenere la classe CSS in base al ruolo
+function getPlayerRowClass(role) {
+  if (role === 'P') return 'player-row-portieri';
+  if (['DC', 'TD', 'TS'].includes(role)) return 'player-row-difensori';
+  if (['CDC', 'CC', 'COC', 'RM', 'LM'].includes(role)) return 'player-row-centrocampisti';
+  if (['AD', 'AS', 'ATT'].includes(role)) return 'player-row-attaccanti';
+  return '';
+}
 
 const TEAM_STYLES = {
   'Celta Vigo': { color:'#1f9d55' },
@@ -1224,7 +1284,9 @@ function renderMarket(){
   }
   
   filtered = filtered.filter(p => (p.value || 0) >= state.marketFilter.minValue && (p.value || 0) <= state.marketFilter.maxValue);
-  filtered.sort((a,b) => (b.value || 0) - (a.value || 0));
+  
+  // Ordina per ruolo usando lo stesso ordine
+  filtered = sortPlayersByRole(filtered);
   
   const totalValue = filtered.reduce((sum, p) => sum + (p.value || 0), 0);
   
@@ -1249,11 +1311,12 @@ function renderMarket(){
       </div>
     </div>
     <div class="card">
-      <h3 style="margin-bottom:16px">🏆 Lista Giocatori (dal più costoso)</h3>
+      <h3 style="margin-bottom:16px">🏆 Lista Giocatori (per ruolo)</h3>
       ${filtered.map(player => {
         const team = state.teams.find(t => t.id === player.team_id);
+        const rowClass = getPlayerRowClass(player.role);
         return `
-          <div class="player-row">
+          <div class="player-row ${rowClass}">
             <div style="display:flex;align-items:center;gap:10px;flex:1">
               <div class="player-avatar small" style="background:${getTeamStyle(team?.name).color}"></div>
               <div>
@@ -1414,6 +1477,7 @@ function renderMatches(){
 function renderTeamDetail(){
   const team = currentTeam();
   const players = teamPlayers(team.id);
+  const sortedPlayers = sortPlayersByRole(players);
 
   return `
     <div style="margin-bottom:16px">
@@ -1449,58 +1513,62 @@ function renderTeamDetail(){
           }).join('')}
         </div>
       </div>
-<!-- PANCHINA COMPATTA -->
-<div class="card">
-  <h3 style="margin-bottom:16px">Panchina</h3>
-  <div class="bench-grid">
-    ${Array.from({length:9}).map((_,i)=>{
-      const benchP = getBenchPlayer(team.id, `BENCH_${i}`);
-      if(benchP){
-        return `
-          <div class="bench-slot" onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')" ondragover="window.allowDrop(event)" ondrop="window.dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
-            ${playerAvatar(benchP, team, 'bench')}
-            <div style="flex:1; min-width:0">
-              <div class="bench-player-name">${benchP.name}</div>
-              <div class="bench-player-role">${ROLES[benchP.role] || benchP.role}</div>
-            </div>
-          </div>
-        `;
-      } else {
-        return `
-          <div class="bench-slot-empty" onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')" ondragover="window.allowDrop(event)" ondrop="window.dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
-            <span>➕</span>
-            <span>Slot ${i+1}</span>
-          </div>
-        `;
-      }
-    }).join('')}
-  </div>
-</div>
+      <!-- PANCHINA COMPATTA -->
+      <div class="card">
+        <h3 style="margin-bottom:16px">Panchina</h3>
+        <div class="bench-grid">
+          ${Array.from({length:9}).map((_,i)=>{
+            const benchP = getBenchPlayer(team.id, `BENCH_${i}`);
+            if(benchP){
+              return `
+                <div class="bench-slot" onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')" ondragover="window.allowDrop(event)" ondrop="window.dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
+                  ${playerAvatar(benchP, team, 'bench')}
+                  <div style="flex:1; min-width:0">
+                    <div class="bench-player-name">${benchP.name}</div>
+                    <div class="bench-player-role">${ROLES[benchP.role] || benchP.role}</div>
+                  </div>
+                </div>
+              `;
+            } else {
+              return `
+                <div class="bench-slot-empty" onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')" ondragover="window.allowDrop(event)" ondrop="window.dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
+                  <span>➕</span>
+                  <span>Slot ${i+1}</span>
+                </div>
+              `;
+            }
+          }).join('')}
+        </div>
+      </div>
     </div>
-    <!-- ROSA -->
+    <!-- ROSA CON ORDINAMENTO E COLORI -->
     <div class="card" style="margin-top:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <h3>Rosa</h3>
         ${isAdmin() ? `<button class="btn btn-primary" onclick="openCreatePlayer()">+ Giocatore</button>` : ''}
       </div>
-      ${players.map(player=>`
-        <div class="player-row" draggable="true" ondragstart="dragPlayer(event, ${player.id})">
-          <div style="display:flex;align-items:center;gap:10px">
-            ${playerAvatar(player, team, 'small')}
-            <div>
-              <strong>${player.name}</strong>
-              <div style="font-size:12px;color:var(--muted)">${ROLES[player.role] || player.role}</div>
+      ${sortedPlayers.map(player=>{
+        const rowClass = getPlayerRowClass(player.role);
+        return `
+          <div class="player-row ${rowClass}" draggable="true" ondragstart="dragPlayer(event, ${player.id})" style="cursor:grab">
+            <div style="display:flex;align-items:center;gap:10px">
+              ${playerAvatar(player, team, 'small')}
+              <div>
+                <strong>${player.name}</strong>
+                <div style="font-size:12px;color:var(--muted)">${ROLES[player.role] || player.role}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div class="badge">OVR ${player.ovr}</div>
+              ${isAdmin() ? `
+                <button class="btn" style="padding:6px 10px;font-size:12px" onclick="openEditPlayer(${player.id})">✏️</button>
+                <button class="btn btn-danger" style="padding:6px 10px;font-size:12px" onclick="deletePlayer(${player.id})">🗑️</button>
+              ` : ''}
             </div>
           </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <div class="badge">OVR ${player.ovr}</div>
-            ${isAdmin() ? `
-              <button class="btn" style="padding:6px 10px;font-size:12px" onclick="openEditPlayer(${player.id})">✏️</button>
-              <button class="btn btn-danger" style="padding:6px 10px;font-size:12px" onclick="deletePlayer(${player.id})">🗑️</button>
-            ` : ''}
-          </div>
-        </div>
-      `).join('')}
+        `;
+      }).join('')}
+      ${sortedPlayers.length === 0 ? `<div style="text-align:center;padding:40px;color:var(--muted)">Nessun giocatore in rosa</div>` : ''}
     </div>
   `;
 }
