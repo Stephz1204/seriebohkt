@@ -649,14 +649,12 @@ function isAdmin(){
 }
 
 function playerAvatar(player, team, size=''){
-  const style = getTeamStyle(team.name);
   return `
     <div class="player-avatar ${size}"
-      style="background:${style.color}">
+      style="background:${team.color}">
     </div>
   `;
 }
-
 // ==========================================
 // AUTH
 // ==========================================
@@ -813,58 +811,67 @@ async function createPlayer(){
   toast('Giocatore creato');
 }
 
-async function saveLineup(teamId,positionKey,playerId){
+async function saveLineup(teamId, positionKey, playerId){
 
   await supabaseClient
-  .from('lineups')
-  .delete()
-  .eq('team_id',teamId)
-  .eq('player_id',playerId);
+    .from('lineups')
+    .delete()
+    .eq('team_id', teamId)
+    .eq('player_id', playerId);
 
-  const existing = state.lineups.find(l=>l.team_id===teamId && l.position_key===positionKey);
+  const existing = state.lineups.find(l => l.team_id===teamId && l.position_key===positionKey);
 
   if(existing){
     await supabaseClient
-    .from('lineups')
-    .update({player_id:playerId})
-    .eq('id',existing.id);
-  }else{
-    await supabaseClient
-    .from('lineups')
-    .insert({
-      team_id:teamId,
-      position_key:positionKey,
-      player_id:playerId
-    });
+      .from('lineups')
+      .update({player_id: playerId})
+      .eq('id', existing.id);
+
+    // aggiorna state locale subito
+    existing.player_id = playerId;
+  } else {
+    const { data } = await supabaseClient
+      .from('lineups')
+      .insert({ team_id:teamId, position_key:positionKey, player_id:playerId })
+      .select()
+      .single();
+
+    // aggiorna state locale subito
+    if(data) state.lineups.push(data);
   }
+
+  // rimuovi vecchie occorrenze del giocatore in altre posizioni
+  state.lineups = state.lineups.filter(l =>
+    !(l.team_id===teamId && l.player_id===playerId && l.position_key!==positionKey)
+  );
 
   closeModal();
   toast('Formazione aggiornata');
 }
 
-async function saveBench(teamId,slot,playerId){
+async function saveBench(teamId, slot, playerId){
 
   const existing = state.bench.find(
     b => b.team_id===teamId && b.slot===slot
   );
 
   if(existing){
-
     await supabaseClient
       .from('bench')
-      .update({player_id:playerId})
-      .eq('id',existing.id);
+      .update({player_id: playerId})
+      .eq('id', existing.id);
 
+    // aggiorna state locale subito
+    existing.player_id = playerId;
   } else {
-
-    await supabaseClient
+    const { data } = await supabaseClient
       .from('bench')
-      .insert({
-        team_id:teamId,
-        slot,
-        player_id:playerId
-      });
+      .insert({ team_id:teamId, slot, player_id:playerId })
+      .select()
+      .single();
 
+    // aggiorna state locale subito
+    if(data) state.bench.push(data);
   }
 
   closeModal();
