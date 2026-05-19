@@ -679,6 +679,45 @@ h1, h2, h3, h4 {
   box-shadow: 0 1px 2px rgba(0,0,0,0.2);
   vertical-align: middle;
 }
+
+  /* Stili per drag & drop mobile */
+.draggable {
+  cursor: grab;
+  touch-action: none; /* Migliora il drag su mobile */
+  transition: transform 0.1s ease, opacity 0.2s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.draggable:active {
+  cursor: grabbing;
+}
+
+.dragging {
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+
+.drag-over {
+  border: 2px dashed var(--green);
+  background: rgba(0, 255, 136, 0.1);
+  transform: scale(1.02);
+}
+
+/* Zona di rilascio */
+.drop-zone {
+  transition: all 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .draggable {
+    cursor: default; /* Su mobile non mostra grab ma funziona lo stesso */
+  }
+  
+  .bench-slot, .bench-slot-empty, .pos-shirt {
+    touch-action: manipulation;
+  }
+}
   
 </style>
 </head>
@@ -997,12 +1036,20 @@ const state = {
   loading:true,
   marketFilter:{team:'all', role:'all', minValue:0, maxValue:9999}
 };
-
+  
 // ==========================================
 // GLOBAL VARIABLES
 // ==========================================
 let realtimeChannel = null;
 let draggedPlayerId = null;
+let draggedElement = null;
+let draggedPlayerIdGlobal = null;
+let draggedSourceType = null;
+let draggedSourceKey = null;
+let draggedSourceSlot = null;
+let touchStartX = 0;
+let touchStartY = 0;
+let touchTarget = null;
 
 // ==========================================
 // HELPERS
@@ -1348,6 +1395,7 @@ async function bootstrap(){
 
   subscribeRealtime();
   state.loading = false;
+  initTouchSupport();
   renderApp();
 }
 
@@ -1998,26 +2046,127 @@ function renderApp(){
 // ==========================================
 // NAVIGATION & DRAG & DROP
 // ==========================================
-function dragPlayer(event, playerId){
-  draggedPlayerId = playerId;
+
+// Inizia il drag (PC)
+function dragPlayer(event, playerId, sourceType, sourceKey, sourceSlot) {
+  draggedPlayerIdGlobal = playerId;
+  draggedSourceType = sourceType;
+  draggedSourceKey = sourceKey;
+  draggedSourceSlot = sourceSlot;
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('text/plain', playerId);
+    event.dataTransfer.effectAllowed = 'move';
+  }
+  if (event.target.closest('.draggable')) {
+    event.target.closest('.draggable').classList.add('dragging');
+  }
 }
 
-function allowDrop(event){
+function dragEnd(event) {
+  draggedPlayerIdGlobal = null;
+  draggedSourceType = null;
+  draggedSourceKey = null;
+  draggedSourceSlot = null;
+  document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+
+function allowDrop(event) {
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+}
+
+function dragOverHighlight(event) {
+  event.preventDefault();
+  const target = event.target.closest('.drop-zone, .bench-slot, .bench-slot-empty, .pos-shirt');
+  if (target && !target.classList.contains('drag-over')) {
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    target.classList.add('drag-over');
+  }
+}
+
+function dragLeaveHighlight(event) {
+  const target = event.target.closest('.drop-zone, .bench-slot, .bench-slot-empty, .pos-shirt');
+  if (target) target.classList.remove('drag-over');
+}
+
+async function dropPlayer(event, teamId, positionKey) {
+  event.preventDefault();
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  let playerId = draggedPlayerIdGlobal;
+  if (!playerId && event.dataTransfer) playerId = event.dataTransfer.getData('text/plain');
+  if (!playerId) return;
+  await saveLineup(teamId, positionKey, parseInt(playerId));
+  draggedPlayerIdGlobal = null;
+}
+
+async function dropBenchPlayer(event, teamId, slot) {
+  event.preventDefault();
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  let playerId = draggedPlayerIdGlobal;
+  if (!playerId && event.dataTransfer) playerId = event.dataTransfer.getData('text/plain');
+  if (!playerId) return;
+  await saveBench(teamId, slot, parseInt(playerId));
+  draggedPlayerIdGlobal = null;
+}
+
+// Touch event per mobile
+function handleTouchStart(event, playerId, sourceType, sourceKey, sourceSlot) {
+  touchStartX = event.touches[0].clientX;
+  touchStartY = event.touches[0].clientY;
+  touchTarget = event.target.closest('.draggable');
+  if (!touchTarget) return;
+  draggedPlayerIdGlobal = playerId;
+  draggedSourceType = sourceType;
+  draggedSourceKey = sourceKey;
+  draggedSourceSlot = sourceSlot;
+  touchTarget.classList.add('dragging');
   event.preventDefault();
 }
 
-async function dropPlayer(event, teamId, positionKey){
+function handleTouchMove(event) {
+  if (!draggedPlayerIdGlobal) return;
   event.preventDefault();
-  if(!draggedPlayerId) return;
-  await saveLineup(teamId, positionKey, draggedPlayerId);
-  draggedPlayerId = null;
+  const touchX = event.touches[0].clientX;
+  const touchY = event.touches[0].clientY;
+  const deltaX = Math.abs(touchX - touchStartX);
+  const deltaY = Math.abs(touchY - touchStartY);
+  if (deltaX > 10 || deltaY > 10) {
+    const elemUnderTouch = document.elementsFromPoint(touchX, touchY)[0];
+    const dropTarget = elemUnderTouch.closest('.drop-zone, .bench-slot, .bench-slot-empty, .pos-shirt');
+    document.querySelectorAll('.drag-over').forEach(el => { if (el !== dropTarget) el.classList.remove('drag-over'); });
+    if (dropTarget && !dropTarget.classList.contains('drag-over')) dropTarget.classList.add('drag-over');
+  }
 }
 
-async function dropBenchPlayer(event, teamId, slot){
+async function handleTouchEnd(event) {
+  if (!draggedPlayerIdGlobal) { dragEnd(event); return; }
   event.preventDefault();
-  if(!draggedPlayerId) return;
-  await saveBench(teamId, slot, draggedPlayerId);
-  draggedPlayerId = null;
+  const touchEndX = event.changedTouches[0].clientX;
+  const touchEndY = event.changedTouches[0].clientY;
+  const elemUnderTouch = document.elementsFromPoint(touchEndX, touchEndY)[0];
+  let dropTarget = elemUnderTouch.closest('.pos-shirt');
+  if (!dropTarget) dropTarget = elemUnderTouch.closest('.bench-slot');
+  if (!dropTarget) dropTarget = elemUnderTouch.closest('.bench-slot-empty');
+  if (dropTarget) {
+    const isLineup = dropTarget.closest('.pos-shirt') !== null;
+    const isBench = dropTarget.closest('.bench-slot') !== null || dropTarget.closest('.bench-slot-empty') !== null;
+    if (isLineup) {
+      const positionKey = dropTarget.getAttribute('data-position-key');
+      const teamId = parseInt(dropTarget.getAttribute('data-team-id'));
+      if (positionKey && teamId) await saveLineup(teamId, positionKey, draggedPlayerIdGlobal);
+    } else if (isBench) {
+      const slot = dropTarget.getAttribute('data-slot');
+      const teamId = parseInt(dropTarget.getAttribute('data-team-id'));
+      if (slot && teamId) await saveBench(teamId, slot, draggedPlayerIdGlobal);
+    }
+  }
+  dragEnd(event);
+}
+
+function initTouchSupport() {
+  document.body.addEventListener('touchmove', handleTouchMove, { passive: false });
+  document.body.addEventListener('touchend', handleTouchEnd);
 }
 
 function navigate(page){
