@@ -435,6 +435,101 @@ h1, h2, h3, h4 {
   letter-spacing: -0.5px;
 }
 
+/* Mobile: panchina scrollabile orizzontalmente se necessario */
+@media (max-width: 600px) {
+  .bench-grid {
+    gap: 8px;
+  }
+  
+  .bench-slot, .bench-slot-empty {
+    padding: 6px 8px;
+  }
+  
+  .bench-player-name {
+    font-size: 11px;
+  }
+  
+  .bench-player-role {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+  
+  .player-avatar.bench {
+    width: 28px;
+    height: 28px;
+  }
+}
+  
+/* MOBILE - FORMAZIONE PIÙ GRANDE */
+@media (max-width: 768px) {
+  .grid[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  
+  .field-view {
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 420 / 560;
+    min-height: 480px;
+  }
+  
+  .pos-shirt {
+    width: 42px;
+    height: 42px;
+  }
+  
+  .player-avatar {
+    width: 42px;
+    height: 42px;
+  }
+  
+  .player-avatar.small {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .pos-name {
+    font-size: 9px;
+    padding: 2px 6px;
+    white-space: nowrap;
+  }
+  
+  .bench-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .field-view {
+    min-height: 420px;
+  }
+  
+  .pos-shirt {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .player-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 11px;
+  }
+  
+  .player-avatar.small {
+    width: 30px;
+    height: 30px;
+    font-size: 10px;
+  }
+  
+  .pos-name {
+    font-size: 8px;
+    padding: 2px 4px;
+  }
+}
+  
+  
 </style>
 </head>
 <body>
@@ -1334,7 +1429,7 @@ function renderTeamDetail(){
         </div>
       </div>
     </div>
-    <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px">
+    <div class="grid formation-grid" style="grid-template-columns:1fr 1fr;gap:16px">
       <!-- FORMAZIONE -->
       <div class="card">
         <h3 style="margin-bottom:16px">Formazione</h3>
