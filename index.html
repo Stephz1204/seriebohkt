@@ -633,11 +633,15 @@ function currentTeam(){
   return state.teams.find(t=>t.id===state.selectedTeam);
 }
 
-  function getTeamStyle(teamName){
-
-  return TEAM_STYLES[teamName] || {
-    color:'#1d9e75'
-  };
+  function getTeamStyle(teamName) {
+  const team = state.teams.find(t => t.name === teamName);
+  if (team && team.color) {
+    // Usa il colore salvato nel database (può essere un hex, un gradiente, etc.)
+    return { color: team.color };
+  }
+  // Colore di default
+  return { color: '#1d9e75' };
+}
 
 }
 
@@ -665,10 +669,14 @@ function isAdmin(){
   return state.profile?.role === 'admin';
 }
 
-function playerAvatar(player, team, size=''){
+function playerAvatar(player, team, size = '') {
+  let bgColor = '#1d9e75'; // default
+  if (team && team.color) {
+    bgColor = team.color;
+  }
   return `
     <div class="player-avatar ${size}"
-      style="background:${team.color}">
+      style="background:${bgColor}">
     </div>
   `;
 }
@@ -1395,16 +1403,12 @@ function renderTeamDetail(){
             return `
               <div class="pos" style="left:${pos.x}%;top:${pos.y}%">
 
-                <div class="pos-shirt"
-                  style="background:${getTeamStyle(team.name).color}"
+               <div class="pos-shirt"
+                  style="background:${team.color || '#1d9e75'}"
                   onclick="chooseLineupPlayer(${team.id},'${pos.k}')"
                   ondragover="allowDrop(event)"
                   ondrop="dropPlayer(event, ${team.id}, '${pos.k}')">
-
-                  
-                    ${player ? playerAvatar(player, team) : ''}
-              
-
+                  ${player ? playerAvatar(player, team) : ''}
                 </div>
 
                 <div class="pos-name">
