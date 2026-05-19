@@ -648,18 +648,11 @@ function isAdmin(){
   return state.profile?.role === 'admin';
 }
 
-  function playerAvatar(player, team, size=''){
-  const initials = player.name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .substring(0,2)
-    .toUpperCase();
-
+function playerAvatar(player, team, size=''){
+  const style = getTeamStyle(team.name);
   return `
     <div class="player-avatar ${size}"
-      style="background:${team.color}">
-      ${initials}
+      style="background:${style.color}">
     </div>
   `;
 }
@@ -1211,10 +1204,9 @@ function renderTeamDetail(){
                   ondragover="allowDrop(event)"
                   ondrop="dropPlayer(event, ${team.id}, '${pos.k}')">
 
-                  ${player
-                    ? playerAvatar(player, team)
-                    : pos.k
-                  }
+                  
+                    ${player ? playerAvatar(player, team) : ''}
+              
 
                 </div>
 
