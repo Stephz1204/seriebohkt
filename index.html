@@ -553,7 +553,132 @@ h1, h2, h3, h4 {
 .player-row-attaccanti:hover {
   background: rgba(255, 255, 255, 0.05);
 }
+  /* ==========================================
+   MOBILE FRIENDLY - NASCONDI AVATAR E OTTIMIZZA
+   ========================================== */
+
+/* Su mobile nascondi gli avatar circolari nella rosa e nel mercato */
+@media (max-width: 768px) {
+  .player-row .player-avatar.small,
+  .player-row .player-avatar {
+    display: none;
+  }
   
+  /* Rendi le righe più compatte */
+  .player-row {
+    padding: 10px 8px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .player-row > div:first-child {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  /* Testi più piccoli */
+  .player-row strong {
+    font-size: 14px;
+  }
+  
+  .player-row .badge {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+  
+  /* Bottoni più piccoli */
+  .player-row .btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  
+  /* Statistiche in riga più compatta */
+  .player-row .stats {
+    font-size: 9px;
+  }
+  
+  /* Topbar compatta */
+  .topbar {
+    padding: 12px 16px;
+  }
+  
+  .logo-circle {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+  
+  .logo h2 {
+    font-size: 18px;
+  }
+  
+  /* Nav mobile con scroll orizzontale */
+  .nav {
+    padding: 10px 12px;
+    gap: 6px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .nav button {
+    padding: 8px 14px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  
+  /* Card con padding ridotto */
+  .card {
+    padding: 12px;
+  }
+  
+  /* Badge valore più compatto */
+  .badge[style*="background:#e8f5e9"] {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+}
+
+/* Schermi molto piccoli (iPhone SE, ecc.) */
+@media (max-width: 480px) {
+  .player-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .player-row > div:last-child {
+    align-self: flex-end;
+  }
+  
+  .bench-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .bench-slot, .bench-slot-empty {
+    padding: 6px;
+  }
+  
+  .bench-player-name {
+    font-size: 10px;
+  }
+}
+  /* Fascia da capitano - Cerchio con C */
+.captain-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  border-radius: 50%;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #1a1a1a;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  vertical-align: middle;
+}
   
 </style>
 </head>
@@ -1679,6 +1804,9 @@ function renderTeamDetail(){
   const team = currentTeam();
   const players = teamPlayers(team.id);
   const sortedPlayers = sortPlayersByRole(players);
+  
+  // Trova il nome del capitano
+  const captain = state.players.find(p => p.id === team.captain_id);
 
   return `
     <div style="margin-bottom:16px">
@@ -1689,6 +1817,17 @@ function renderTeamDetail(){
         <div>
           <h2>${team.name}</h2>
           <div style="color:var(--muted)">${team.formation}</div>
+          <!-- AGGIUNTA DEL CAPITANO -->
+          <div style="font-size:13px; margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+            ${team.captain_id ? `
+              <span style="color:var(--gold)">🏆 Capitano:</span>
+              <strong>${captain?.name || 'Sconosciuto'}</strong>
+              <button class="btn" style="padding:4px 10px; font-size:12px" onclick="openCaptainSelector(${team.id}, ${team.captain_id})">Cambia</button>
+            ` : `
+              <span style="color:var(--text-muted)">⚠️ Nessun capitano scelto</span>
+              <button class="btn btn-primary" style="padding:4px 10px; font-size:12px" onclick="openCaptainSelector(${team.id}, null)">Nomina Capitano</button>
+            `}
+          </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <div class="badge">${players.length} giocatori</div>
@@ -1750,12 +1889,13 @@ function renderTeamDetail(){
       </div>
       ${sortedPlayers.map(player=>{
         const rowClass = getPlayerRowClass(player.role);
+        const isCaptain = team.captain_id === player.id;
         return `
           <div class="player-row ${rowClass}" draggable="true" ondragstart="dragPlayer(event, ${player.id})" style="cursor:grab">
             <div style="display:flex;align-items:center;gap:10px;flex:1">
               ${playerAvatar(player, team, 'small')}
               <div>
-                <strong>${player.name}</strong>
+                <strong>${player.name} ${isCaptain ? '<span style="color:var(--gold)">🏆</span>' : ''}</strong>
                 <div style="font-size:12px;color:var(--muted)">${ROLES[player.role] || player.role}</div>
                 <div style="font-size:11px;color:var(--gold);margin-top:2px">
                   ⚽ ${player.goals || 0} gol • 🎯 ${player.assists || 0} assist • 🏆 MVP: ${player.mvp_count || 0}
@@ -1894,6 +2034,55 @@ function openTeam(id){
 function goBack(){
   state.selectedTeam = null;
   renderApp();
+}
+
+// ==========================================
+// FUNZIONI CAPITANO (AGGIUNGI QUI!)
+// ==========================================
+
+async function setCaptain(teamId, playerId) {
+  const { error } = await supabaseClient
+    .from('teams')
+    .update({ captain_id: playerId })
+    .eq('id', teamId);
+  
+  if (error) {
+    toast(error.message);
+    return;
+  }
+  
+  toast('Capitano aggiornato!');
+  await silentRefresh();
+  renderApp();
+}
+
+function openCaptainSelector(teamId, currentCaptainId) {
+  const team = state.teams.find(t => t.id === teamId);
+  const players = teamPlayers(teamId);
+  
+  openModal(()=>`
+    <h2 style="margin-bottom:18px">Scegli il Capitano</h2>
+    <p style="margin-bottom:16px; color:var(--text-muted); font-size:13px">
+      Il capitano porta la fascia in campo e riceve un bonus del +10% sul valore dopo ogni partita vinta.
+    </p>
+    <div style="max-height:400px; overflow-y:auto">
+      ${players.map(player => `
+        <div class="player-row" style="cursor:pointer; ${currentCaptainId === player.id ? 'border-left: 3px solid var(--gold); background: rgba(255,215,0,0.1);' : ''}" onclick="setCaptain(${teamId}, ${player.id})">
+          <div style="display:flex; align-items:center; gap:10px">
+            <div class="player-avatar small" style="background:${getTeamStyle(team?.name).color}"></div>
+            <div>
+              <strong>${player.name}</strong>
+              <div style="font-size:12px;color:var(--muted)">${ROLES[player.role] || player.role}</div>
+            </div>
+          </div>
+          ${currentCaptainId === player.id ? '<span style="color:var(--gold)">🏆 Capitano</span>' : '<button class="btn btn-primary" style="padding:4px 12px">Nomina</button>'}
+        </div>
+      `).join('')}
+    </div>
+    <div style="margin-top:16px">
+      <button class="btn" onclick="closeModal()">Annulla</button>
+    </div>
+  `);
 }
 
 // ==========================================
