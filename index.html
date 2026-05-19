@@ -478,92 +478,6 @@ const ROLES = {
   ATT:'Attaccante'
 };
 
-  function generateShirt(teamName, color, role){
-
-  const roleMap = {
-    P:'🧤',
-    TD:'🛡️',
-    TS:'🛡️',
-    DC:'🛡️',
-    CC:'⚙️',
-    CDC:'⚙️',
-    COC:'🎯',
-    AD:'⚡',
-    AS:'⚡',
-    ATT:'🔥'
-  };
-
-function renderShirt(team, role){
-
-  return `
-    <div style="
-      width:42px;
-      height:48px;
-      background:${team.color};
-      clip-path:polygon(
-        18% 0%,
-        32% 0%,
-        38% 10%,
-        62% 10%,
-        68% 0%,
-        82% 0%,
-        100% 22%,
-        88% 34%,
-        88% 100%,
-        12% 100%,
-        12% 34%,
-        0% 22%
-      );
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:white;
-      font-size:10px;
-      font-weight:800;
-      border:2px solid rgba(255,255,255,.25);
-      box-shadow:0 2px 8px rgba(0,0,0,.25);
-    ">
-      ${team.name.substring(0,2).toUpperCase()}
-    </div>
-  `;
-}
-
-  const initials = teamName
-    .split(' ')
-    .map(w => w[0])
-    .join('')
-    .substring(0,3)
-    .toUpperCase();
-
-  return `
-    <div style="
-      width:42px;
-      height:42px;
-      border-radius:50%;
-      background:${color};
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      color:white;
-      font-size:9px;
-      font-weight:700;
-      border:2px solid rgba(255,255,255,.4);
-      box-shadow:0 2px 6px rgba(0,0,0,.2);
-      overflow:hidden;
-      line-height:1;
-    ">
-      <div style="font-size:12px">
-        ${roleMap[role] || '⚽'}
-      </div>
-
-      <div>
-        ${initials}
-      </div>
-    </div>
-  `;
-}
-
 const CALENDAR = [
   { serata:1, giornata:1, partite:[['Stefano','Alessio'],['Luigi','Gabriele'],['Luca','Matteo'],['Mario','Mattia'],['Domenico','Giulio']] },
   { serata:1, giornata:2, partite:[['Stefano','Gabriele'],['Alessio','Matteo'],['Luigi','Mattia'],['Luca','Giulio'],['Mario','Domenico']] },
@@ -720,8 +634,6 @@ async function silentRefresh(){
   }
 }
   
-  
-
 async function bootstrap(){
   state.loading = true;
   renderApp();
@@ -1236,12 +1148,18 @@ function renderTeamDetail(){
                   ondragover="allowDrop(event)"
                   ondrop="dropPlayer(event, ${team.id}, '${pos.k}')">
 
-                ${
-                    player
-                      ? renderShirt(team, player.role)
-                      : ''
+                  ${player
+                    ? `<img src="${player.photo_url || 'https://placehold.co/80'}"
+                        style="
+                          width:100%;
+                          height:100%;
+                          border-radius:50%;
+                          object-fit:cover;
+                        ">`
+                    : pos.k
                   }
-                                  </div>
+
+                </div>
 
                 <div class="pos-name">
                   ${player ? player.name : 'Vuoto'}
@@ -1360,69 +1278,6 @@ function renderTeamDetail(){
                 border:2px solid #eee;
               "
             >
-
-            <div>
-              <strong>${player.name}</strong>
-
-              <div style="font-size:12px;color:var(--muted)">
-                ${ROLES[player.role] || player.role}
-              </div>
-            </div>
-
-          </div>
-
-          <div style="display:flex;gap:8px;align-items:center">
-
-            <div class="badge">OVR ${player.ovr}</div>
-
-            ${isAdmin() ? `
-              <button class="btn"
-                style="padding:6px 10px;font-size:12px"
-                onclick="openEditPlayer(${player.id})">
-                ✏️
-              </button>
-
-              <button class="btn btn-danger"
-                style="padding:6px 10px;font-size:12px"
-                onclick="deletePlayer(${player.id})">
-                🗑️
-              </button>
-            ` : ''}
-
-          </div>
-
-        </div>
-
-      `).join('')}
-
-    </div>
-  `;
-}
-
-  function renderPlayersGroup(title, list){
-
-  if(list.length === 0) return '';
-
-  return `
-    <div style="margin-bottom:24px">
-
-      <h4 style="
-        margin-bottom:12px;
-        padding-bottom:6px;
-        border-bottom:1px solid var(--border);
-      ">
-        ${title}
-      </h4>
-
-      ${list.map(player => `
-
-        <div class="player-row"
-          draggable="true"
-          ondragstart="dragPlayer(event, ${player.id})">
-
-          <div style="display:flex;align-items:center;gap:10px">
-
-            ${renderShirt(team, player.role)}
 
             <div>
               <strong>${player.name}</strong>
@@ -1633,81 +1488,6 @@ function goBack(){
   renderApp();
 }
 
-function renderPlayersGroup(title, players){
-
-  if(players.length === 0){
-    return '';
-  }
-
-  return `
-
-    <div style="margin-bottom:22px">
-
-      <h3 style="
-        margin-bottom:12px;
-        padding-bottom:8px;
-        border-bottom:1px solid var(--border);
-      ">
-        ${title}
-      </h3>
-
-      ${players.map(player => `
-
-        <div class="player-row"
-          draggable="true"
-          ondragstart="dragPlayer(event, ${player.id})">
-
-          <div style="display:flex;align-items:center;gap:10px">
-
-            ${
-                player
-                  ? renderShirt(team, player.role)
-                  : ''
-              }
-
-            <div>
-              <strong>${player.name}</strong>
-
-              <div style="font-size:12px;color:var(--muted)">
-                ${ROLES[player.role] || player.role}
-              </div>
-            </div>
-
-          </div>
-
-          <div style="display:flex;gap:8px;align-items:center">
-
-            <div class="badge">
-              OVR ${player.ovr}
-            </div>
-
-            ${isAdmin() ? `
-
-              <button class="btn"
-                style="padding:6px 10px;font-size:12px"
-                onclick="openEditPlayer(${player.id})">
-                ✏️
-              </button>
-
-              <button class="btn btn-danger"
-                style="padding:6px 10px;font-size:12px"
-                onclick="deletePlayer(${player.id})">
-                🗑️
-              </button>
-
-            ` : ''}
-
-          </div>
-
-        </div>
-
-      `).join('')}
-
-    </div>
-
-  `;
-}
-
 // ==========================================
 // MODALS
 // ==========================================
@@ -1767,33 +1547,22 @@ function chooseLineupPlayer(teamId,positionKey){
 
     <h2 style="margin-bottom:18px">Seleziona giocatore</h2>
 
-    <div style="margin-bottom:24px">
-  ${renderPlayersGroup(
-    'Portieri',
-    players.filter(p => p.role === 'P')
-  )}
+    ${players.map(player=>`
+      <div class="player-row">
+        <div>
+          <strong>${player.name}</strong>
+          <div style="font-size:12px;color:var(--muted)">
+            ${ROLES[player.role]}
+          </div>
+        </div>
 
-  ${renderPlayersGroup(
-    'Difensori',
-    players.filter(p =>
-      ['TD','TS','DC'].includes(p.role)
-    )
-  )}
+        <button class="btn btn-primary"
+          onclick="saveLineup(${teamId},'${positionKey}',${player.id})">
+          Seleziona
+        </button>
+      </div>
+    `).join('')}
 
-  ${renderPlayersGroup(
-    'Centrocampisti',
-    players.filter(p =>
-      ['CC','CDC','COC'].includes(p.role)
-    )
-  )}
-
-  ${renderPlayersGroup(
-    'Attaccanti',
-    players.filter(p =>
-      ['AD','AS','ATT'].includes(p.role)
-    )
-  )}
-</div>
   `);
 }
 
@@ -1805,25 +1574,26 @@ function chooseBenchPlayer(teamId, slot){
 
     <h2 style="margin-bottom:18px">Seleziona riserva</h2>
 
-${renderPlayersGroup('Portieri', players.filter(p => p.role === 'P'))}
+    ${players.map(player=>`
+      <div class="player-row">
 
-${renderPlayersGroup('Difensori',
-  players.filter(p =>
-    ['TD','TS','DC'].includes(p.role)
-  )
-)}
+        <div>
+          <strong>${player.name}</strong>
 
-${renderPlayersGroup('Centrocampisti',
-  players.filter(p =>
-    ['CC','CDC','COC'].includes(p.role)
-  )
-)}
+          <div style="font-size:12px;color:var(--muted)">
+            ${ROLES[player.role]}
+          </div>
+        </div>
 
-${renderPlayersGroup('Attaccanti',
-  players.filter(p =>
-    ['AD','AS','ATT'].includes(p.role)
-  )
-)}
+        <button class="btn btn-primary"
+          onclick="saveBench(${teamId}, '${slot}', ${player.id})">
+
+          Seleziona
+
+        </button>
+
+      </div>
+    `).join('')}
 
   `);
 }
