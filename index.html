@@ -634,20 +634,7 @@ async function silentRefresh(){
   }
 }
   
-  const [teamsRes, playersRes, matchesRes, lineupsRes] = await Promise.all([
-    supabaseClient.from('teams').select('*').order('id'),
-    supabaseClient.from('players').select('*').order('name'),
-    supabaseClient.from('matches').select('*').order('matchday'),
-    supabaseClient.from('lineups').select('*')
-  ]);
-
-  state.teams = teamsRes.data || [];
-  state.players = playersRes.data || [];
-  state.matches = matchesRes.data || [];
-  state.lineups = lineupsRes.data || [];
-
-  renderApp();
-}
+  
 
 async function bootstrap(){
   state.loading = true;
