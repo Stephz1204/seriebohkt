@@ -1007,6 +1007,189 @@ async function silentRefresh(){
     renderApp();
   }
 }
+
+  // ==========================================
+// FUNZIONI PER RISULTATI CON MARCATORI
+// ==========================================
+
+let currentGoalInputs = [];
+
+function updateGoalInputs() {
+  const homeGoals = parseInt(qs('#m-hg').value) || 0;
+  const awayGoals = parseInt(qs('#m-ag').value) || 0;
+  const totalGoals = homeGoals + awayGoals;
+  
+  const container = qs('#goals-list');
+  if (!container) return;
+  
+  let html = '';
+  for (let i = 0; i < totalGoals; i++) {
+    const isHome = i < homeGoals;
+    html += `
+      <div class="field" style="margin-top:10px; padding:10px; background:rgba(255,255,255,0.03); border-radius:12px">
+        <label class="label">⚽ Gol ${i+1} - ${isHome ? 'CASA' : 'OSPITE'}</label>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px">
+          <select id="goal-player-${i}" class="input" style="flex:2" onchange="checkAssistNeeded(${i})">
+            <option value="">Seleziona marcatore</option>
+            ${loadPlayerOptionsForTeam(isHome ? qs('#m-home').value : qs('#m-away').value)}
+          </select>
+          <input type="number" id="goal-minute-${i}" placeholder="Minuto" class="input" style="flex:1" min="1" max="120">
+          <div id="assist-container-${i}" style="display:none; flex:2">
+            <select id="assist-player-${i}" class="input">
+              <option value="">Seleziona assistman</option>
+              ${loadPlayerOptionsForTeam(isHome ? qs('#m-home').value : qs('#m-away').value)}
+            </select>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  container.innerHTML = html;
+  currentGoalInputs = Array(totalGoals).fill().map((_, i) => i);
+}
+
+function checkAssistNeeded(goalIndex) {
+  const assistContainer = qs(`#assist-container-${goalIndex}`);
+  if (assistContainer) {
+    assistContainer.style.display = 'block';
+  }
+}
+
+function loadPlayerOptionsForTeam(teamId) {
+  if (!teamId) return '<option value="">Seleziona prima la squadra</option>';
+  const players = teamPlayers(Number(teamId));
+  return players.map(p => `<option value="${p.id}">${p.name} (${ROLES[p.role] || p.role})</option>`).join('');
+}
+
+async function createResultWithDetails() {
+  const matchday = Number(qs('#m-day').value);
+  const homeTeamId = Number(qs('#m-home').value);
+  const awayTeamId = Number(qs('#m-away').value);
+  const homeGoals = Number(qs('#m-hg').value);
+  const awayGoals = Number(qs('#m-ag').value);
+  
+  if (!homeTeamId || !awayTeamId) {
+    toast('Seleziona entrambe le squadre');
+    return;
+  }
+  
+  // Inserisci il risultato
+  const { data: match, error: matchError } = await supabaseClient
+    .from('matches')
+    .insert({
+      matchday: matchday,
+      home_team: homeTeamId,
+      away_team: awayTeamId,
+      home_goals: homeGoals,
+      away_goals: awayGoals,
+      played: true
+    })
+    .select()
+    .single();
+  
+  if (matchError) {
+    toast(matchError.message);
+    return;
+  }
+  
+  // Inserisci marcatori e assist
+  const totalGoals = homeGoals + awayGoals;
+  const goalDetails = [];
+  const assistDetails = [];
+  const goalsByPlayer = {};
+  
+  for (let i = 0; i < totalGoals; i++) {
+    const playerId = qs(`#goal-player-${i}`).value;
+    const minute = qs(`#goal-minute-${i}`).value;
+    const assistPlayerId = qs(`#assist-player-${i}`)?.value;
+    const isHome = i < homeGoals;
+    const teamId = isHome ? homeTeamId : awayTeamId;
+    
+    if (playerId && minute) {
+      goalDetails.push({
+        match_id: match.id,
+        player_id: Number(playerId),
+        team_id: teamId,
+        action_type: 'goal',
+        minute: Number(minute)
+      });
+      
+      // Conta gol per giocatore (per MVP)
+      goalsByPlayer[playerId] = (goalsByPlayer[playerId] || 0) + 1;
+      
+      if (assistPlayerId) {
+        assistDetails.push({
+          match_id: match.id,
+          player_id: Number(assistPlayerId),
+          team_id: teamId,
+          action_type: 'assist',
+          minute: Number(minute)
+        });
+      }
+    }
+  }
+  
+  // Inserisci tutti i gol
+  if (goalDetails.length > 0) {
+    const { error: goalError } = await supabaseClient
+      .from('match_details')
+      .insert(goalDetails);
+    if (goalError) console.error('Errore inserimento gol:', goalError);
+  }
+  
+  // Inserisci tutti gli assist
+  if (assistDetails.length > 0) {
+    const { error: assistError } = await supabaseClient
+      .from('match_details')
+      .insert(assistDetails);
+    if (assistError) console.error('Errore inserimento assist:', assistError);
+  }
+  
+  // Determina MVP (giocatore con più gol, o primo marcatore)
+  let mvpPlayerId = null;
+  let maxGoals = 0;
+  for (const [playerId, goals] of Object.entries(goalsByPlayer)) {
+    if (goals > maxGoals) {
+      maxGoals = goals;
+      mvpPlayerId = playerId;
+    }
+  }
+  
+  // Se nessun gol, MVP è il portiere con più parate (per ora prendiamo un giocatore a caso)
+  if (!mvpPlayerId && goalDetails.length === 0) {
+    // MVP assegnato al portiere della squadra vincitrice
+    if (homeGoals > awayGoals) {
+      const homeGoalkeeper = teamPlayers(homeTeamId).find(p => p.role === 'P');
+      if (homeGoalkeeper) mvpPlayerId = homeGoalkeeper.id;
+    } else if (awayGoals > homeGoals) {
+      const awayGoalkeeper = teamPlayers(awayTeamId).find(p => p.role === 'P');
+      if (awayGoalkeeper) mvpPlayerId = awayGoalkeeper.id;
+    }
+  }
+  
+  if (mvpPlayerId) {
+    const mvpTeam = goalDetails.find(g => g.player_id === Number(mvpPlayerId))?.team_id || 
+                    (homeGoals > awayGoals ? homeTeamId : awayTeamId);
+    await supabaseClient.from('match_mvp').insert({
+      match_id: match.id,
+      player_id: Number(mvpPlayerId),
+      team_id: mvpTeam
+    });
+  }
+  
+  // Chiama la funzione per aggiornare i valori dei giocatori
+  await supabaseClient.rpc('update_player_values_after_match', { match_id_param: match.id });
+  
+  await silentRefresh();
+  closeModal();
+  toast('Risultato salvato con statistiche!');
+  renderApp();
+}
+
+// Funzione per caricare i giocatori nel modal (chiamata onchange)
+function loadPlayersForResult() {
+  updateGoalInputs();
+}
   
 async function bootstrap(){
   state.loading = true;
@@ -1287,7 +1470,6 @@ function openTransferModal(playerId){
     </div>
   `);
 }
-
 function renderMarket(){
   let filtered = [...state.players];
   
@@ -1301,8 +1483,8 @@ function renderMarket(){
   
   filtered = filtered.filter(p => (p.value || 0) >= state.marketFilter.minValue && (p.value || 0) <= state.marketFilter.maxValue);
   
-  // Ordina per ruolo usando lo stesso ordine
-  filtered = sortPlayersByRole(filtered);
+  // ORDINE PER VALORE ATTUALE (crediti spesi/valore attuale)
+  filtered.sort((a,b) => (b.value || 0) - (a.value || 0));
   
   const totalValue = filtered.reduce((sum, p) => sum + (p.value || 0), 0);
   
@@ -1323,11 +1505,11 @@ function renderMarket(){
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <div class="badge">${filtered.length} giocatori</div>
-        <div class="badge">💰 Valore totale: €${totalValue}M</div>
+        <div class="badge">💰 Valore totale mercato: €${totalValue}M</div>
       </div>
     </div>
     <div class="card">
-      <h3 style="margin-bottom:16px">🏆 Lista Giocatori (per ruolo)</h3>
+      <h3 style="margin-bottom:16px">🏆 Lista Giocatori (dal valore più alto)</h3>
       ${filtered.map(player => {
         const team = state.teams.find(t => t.id === player.team_id);
         const rowClass = getPlayerRowClass(player.role);
@@ -1339,6 +1521,9 @@ function renderMarket(){
                 <strong>${player.name}</strong>
                 <div style="font-size:12px;color:var(--muted)">
                   ${ROLES[player.role] || player.role} • ${team?.name || 'Senza squadra'}
+                </div>
+                <div style="font-size:11px;color:var(--gold);margin-top:2px">
+                  ⚽ ${player.goals || 0} gol • 🎯 ${player.assists || 0} assist • 🏆 MVP: ${player.mvp_count || 0}
                 </div>
               </div>
             </div>
@@ -1567,15 +1752,19 @@ function renderTeamDetail(){
         const rowClass = getPlayerRowClass(player.role);
         return `
           <div class="player-row ${rowClass}" draggable="true" ondragstart="dragPlayer(event, ${player.id})" style="cursor:grab">
-            <div style="display:flex;align-items:center;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px;flex:1">
               ${playerAvatar(player, team, 'small')}
               <div>
                 <strong>${player.name}</strong>
                 <div style="font-size:12px;color:var(--muted)">${ROLES[player.role] || player.role}</div>
+                <div style="font-size:11px;color:var(--gold);margin-top:2px">
+                  ⚽ ${player.goals || 0} gol • 🎯 ${player.assists || 0} assist • 🏆 MVP: ${player.mvp_count || 0}
+                </div>
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
               <div class="badge">OVR ${player.ovr}</div>
+              <div class="badge" style="background:rgba(255,215,0,0.1);color:var(--gold)">💰 ${player.value || 0}M</div>
               ${isAdmin() ? `
                 <button class="btn" style="padding:6px 10px;font-size:12px" onclick="openEditPlayer(${player.id})">✏️</button>
                 <button class="btn btn-danger" style="padding:6px 10px;font-size:12px" onclick="deletePlayer(${player.id})">🗑️</button>
@@ -1802,15 +1991,44 @@ function updateFormationPreview(formation){
 function openResultModal(){
   openModal(()=>`
     <h2 style="margin-bottom:18px">Nuovo Risultato</h2>
-    <div class="field"><label class="label">Giornata</label><input id="m-day" class="input" type="number" value="1" /></div>
-    <div class="field"><label class="label">Casa</label><select id="m-home" class="input">${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
-    <div class="field"><label class="label">Gol Casa</label><input id="m-hg" class="input" type="number" value="0" /></div>
-    <div class="field"><label class="label">Ospite</label><select id="m-away" class="input">${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
-    <div class="field"><label class="label">Gol Ospite</label><input id="m-ag" class="input" type="number" value="0" /></div>
-    <div style="display:flex;gap:10px;margin-top:18px"><button class="btn" onclick="closeModal()">Annulla</button><button class="btn btn-primary" onclick="createResult()">Salva</button></div>
+    <div class="field">
+      <label class="label">Giornata</label>
+      <input id="m-day" class="input" type="number" value="1" />
+    </div>
+    <div class="field">
+      <label class="label">Casa</label>
+      <select id="m-home" class="input" onchange="loadPlayersForResult()">
+        <option value="">Seleziona squadra</option>
+        ${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field">
+      <label class="label">Gol Casa</label>
+      <input id="m-hg" class="input" type="number" value="0" onchange="updateGoalInputs()" min="0" />
+    </div>
+    <div class="field">
+      <label class="label">Ospite</label>
+      <select id="m-away" class="input" onchange="loadPlayersForResult()">
+        <option value="">Seleziona squadra</option>
+        ${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field">
+      <label class="label">Gol Ospite</label>
+      <input id="m-ag" class="input" type="number" value="0" onchange="updateGoalInputs()" min="0" />
+    </div>
+    
+    <div id="goals-container" style="margin-top:20px">
+      <h4 style="margin-bottom:12px">⚽ Marcatori e Assist</h4>
+      <div id="goals-list"></div>
+    </div>
+    
+    <div style="display:flex;gap:10px;margin-top:24px">
+      <button class="btn" onclick="closeModal()">Annulla</button>
+      <button class="btn btn-primary" onclick="createResultWithDetails()">Salva</button>
+    </div>
   `);
 }
-
 // ==========================================
 // START
 // ==========================================
