@@ -1977,7 +1977,7 @@ function renderTeamDetail(){
   return `
     <div class="player-row ${rowClass} draggable" 
   draggable="true" 
-  ondragstart="dragPlayer(event, ${player.id})"
+  ondragstart="return false;" 
   ontouchstart="handleTouchStart(event, ${player.id})"
   style="cursor:grab">
       <div style="display:flex;align-items:center;gap:10px;flex:1">
