@@ -510,6 +510,7 @@ const state = {
   players:[],
   matches:[],
   lineups:[],
+  bench:[],
   selectedTeam:null,
   modal:null,
   loading:true
@@ -551,6 +552,16 @@ function teamPlayers(teamId){
 function lineupPlayer(teamId,key){
   const row = state.lineups.find(l=>l.team_id===teamId && l.position_key===key);
   if(!row) return null;
+  return state.players.find(p=>p.id===row.player_id);
+}
+
+function getBenchPlayer(teamId,slot){
+  const row = state.bench.find(
+    b => b.team_id===teamId && b.slot===slot
+  );
+
+  if(!row) return null;
+
   return state.players.find(p=>p.id===row.player_id);
 }
 
@@ -620,25 +631,28 @@ async function bootstrap(){
 
   state.user = user;
 
-  const [
-    profileRes,
-    teamsRes,
-    playersRes,
-    matchesRes,
-    lineupsRes
-  ] = await Promise.all([
-    supabaseClient.from('profiles').select('*').eq('id',user.id).single(),
-    supabaseClient.from('teams').select('*').order('id'),
-    supabaseClient.from('players').select('*').order('name'),
-    supabaseClient.from('matches').select('*').order('matchday'),
-    supabaseClient.from('lineups').select('*')
-  ]);
+const [
+  profileRes,
+  teamsRes,
+  playersRes,
+  matchesRes,
+  lineupsRes,
+  benchRes
+] = await Promise.all([
+  supabaseClient.from('profiles').select('*').eq('id',user.id).single(),
+  supabaseClient.from('teams').select('*').order('id'),
+  supabaseClient.from('players').select('*').order('name'),
+  supabaseClient.from('matches').select('*').order('matchday'),
+  supabaseClient.from('lineups').select('*'),
+  supabaseClient.from('bench').select('*')
+]);
 
   state.profile = profileRes.data;
   state.teams = teamsRes.data || [];
   state.players = playersRes.data || [];
   state.matches = matchesRes.data || [];
   state.lineups = lineupsRes.data || [];
+  state.bench = benchRes.data || [];
 
   subscribeRealtime();
 
@@ -656,6 +670,7 @@ function subscribeRealtime(){
   .on('postgres_changes',{event:'*',schema:'public',table:'teams'}, silentRefresh)
   .on('postgres_changes',{event:'*',schema:'public',table:'matches'}, silentRefresh)
   .on('postgres_changes',{event:'*',schema:'public',table:'lineups'}, silentRefresh)
+  .on('postgres_changes',{event:'*',schema:'public',table:'bench'}, silentRefresh)
   .subscribe();
 }
 
@@ -713,6 +728,35 @@ async function saveLineup(teamId,positionKey,playerId){
 
   closeModal();
   toast('Formazione aggiornata');
+}
+
+async function saveBench(teamId,slot,playerId){
+
+  const existing = state.bench.find(
+    b => b.team_id===teamId && b.slot===slot
+  );
+
+  if(existing){
+
+    await supabaseClient
+      .from('bench')
+      .update({player_id:playerId})
+      .eq('id',existing.id);
+
+  } else {
+
+    await supabaseClient
+      .from('bench')
+      .insert({
+        team_id:teamId,
+        slot,
+        player_id:playerId
+      });
+
+  }
+
+  closeModal();
+  toast('Panchina aggiornata');
 }
 
 async function createResult(){
@@ -1019,119 +1063,201 @@ function renderTeamDetail(){
         </div>
 
         <div style="display:flex;gap:8px;align-items:center">
-            <div class="badge">${players.length} giocatori</div>
-          
-            <button class="btn" onclick="openEditTeam(${team.id})">
-              ✏️ Modifica formazione
-            </button>
-          </div>
+          <div class="badge">${players.length} giocatori</div>
+
+          <button class="btn" onclick="openEditTeam(${team.id})">
+            ✏️ Modifica formazione
+          </button>
+        </div>
       </div>
     </div>
 
-    <div class="grid" style="grid-template-columns:1fr 1fr">
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px">
 
+      <!-- FORMAZIONE -->
       <div class="card">
+
         <h3 style="margin-bottom:16px">Formazione</h3>
 
         <div class="field-view">
-        ${FORMATIONS[team.formation].map(pos=>{
-      
-          const player = lineupPlayer(team.id,pos.k);
-      
-          return `
-            <div class="pos" style="left:${pos.x}%;top:${pos.y}%">
-              <div class="pos-shirt"
-                style="background:${team.color}"
-                onclick="chooseLineupPlayer(${team.id},'${pos.k}')"
-                ondragover="allowDrop(event)"
-                ondrop="dropPlayer(event, ${team.id}, '${pos.k}')">
-                ${player ? player.name.slice(0,3).toUpperCase() : pos.k}
+
+          ${FORMATIONS[team.formation].map(pos=>{
+
+            const player = lineupPlayer(team.id,pos.k);
+
+            return `
+              <div class="pos" style="left:${pos.x}%;top:${pos.y}%">
+
+                <div class="pos-shirt"
+                  style="background:${team.color}"
+                  onclick="chooseLineupPlayer(${team.id},'${pos.k}')"
+                  ondragover="allowDrop(event)"
+                  ondrop="dropPlayer(event, ${team.id}, '${pos.k}')">
+
+                  ${player
+                    ? `<img src="${player.photo_url || 'https://placehold.co/80'}"
+                        style="
+                          width:100%;
+                          height:100%;
+                          border-radius:50%;
+                          object-fit:cover;
+                        ">`
+                    : pos.k
+                  }
+
+                </div>
+
+                <div class="pos-name">
+                  ${player ? player.name : 'Vuoto'}
+                </div>
+
               </div>
-              <div class="pos-name">
-                ${player ? player.name : 'Vuoto'}
-              </div>
-            </div>
-          `;
-      
-        }).join('')}
+            `;
+
+          }).join('')}
+
+        </div>
+
       </div>
-      
-      <div style="margin-top:20px">
-        <h3 style="margin-bottom:10px">Riserve</h3>
-      
+
+      <!-- PANCHINA -->
+      <div class="card">
+
+        <h3 style="margin-bottom:16px">Panchina</h3>
+
         <div style="
           display:grid;
-          grid-template-columns:repeat(3,1fr);
-          gap:10px;
+          grid-template-columns:1fr 1fr 1fr;
+          gap:12px;
         ">
-      
-          ${Array.from({length:9}).map((_,i)=>`
-            <div style="
-              background:#f3f3f3;
-              border:1px dashed #ccc;
-              border-radius:12px;
-              height:70px;
-              display:flex;
-              align-items:center;
-              justify-content:center;
-              color:#666;
-              font-size:12px;
-            ">
-              Slot ${i+1}
-            </div>
-          `).join('')}
-      
-        </div>
-      </div>
 
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <h3>Rosa</h3>
+          ${Array.from({length:9}).map((_,i)=>{
 
-          ${isAdmin() ? `
-            <button class="btn btn-primary" onclick="openCreatePlayer()">
-              + Giocatore
-            </button>
-          `:''}
-        </div>
+            const benchP = getBenchPlayer(team.id, `BENCH_${i}`);
 
-        ${players.map(player=>`
-          <div class="player-row"
-             draggable="true"
-             ondragstart="dragPlayer(event, ${player.id})">
-            <div style="display:flex;align-items:center;gap:10px">
-
-              <img
-                src="${player.photo_url || 'https://placehold.co/80'}"
+            return `
+              <div
+                onclick="chooseBenchPlayer(${team.id}, 'BENCH_${i}')"
+                ondragover="allowDrop(event)"
+                ondrop="dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')"
                 style="
-                  width:42px;
-                  height:42px;
-                  border-radius:50%;
-                  object-fit:cover;
-                  border:2px solid #eee;
+                  background:#f3f3f3;
+                  border:1px dashed #ccc;
+                  border-radius:12px;
+                  min-height:90px;
+                  padding:10px;
+                  display:flex;
+                  flex-direction:column;
+                  align-items:center;
+                  justify-content:center;
+                  cursor:pointer;
+                  text-align:center;
                 "
               >
-            
-              <div>
-                <strong>${player.name}</strong>
-            
-                <div style="font-size:12px;color:var(--muted)">
-                  ${ROLES[player.role] || player.role}
-                </div>
+
+                ${
+                  benchP
+                  ? `
+                    <img
+                      src="${benchP.photo_url || 'https://placehold.co/80'}"
+                      style="
+                        width:42px;
+                        height:42px;
+                        border-radius:50%;
+                        object-fit:cover;
+                        margin-bottom:6px;
+                      "
+                    >
+
+                    <div style="font-size:12px;font-weight:600">
+                      ${benchP.name}
+                    </div>
+                  `
+                  : `
+                    <div style="font-size:12px;color:#666">
+                      Slot ${i+1}
+                    </div>
+                  `
+                }
+
               </div>
-            
+            `;
+
+          }).join('')}
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ROSA -->
+    <div class="card" style="margin-top:16px">
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+
+        <h3>Rosa</h3>
+
+        ${isAdmin() ? `
+          <button class="btn btn-primary" onclick="openCreatePlayer()">
+            + Giocatore
+          </button>
+        `:''}
+
+      </div>
+
+      ${players.map(player=>`
+
+        <div class="player-row"
+          draggable="true"
+          ondragstart="dragPlayer(event, ${player.id})">
+
+          <div style="display:flex;align-items:center;gap:10px">
+
+            <img
+              src="${player.photo_url || 'https://placehold.co/80'}"
+              style="
+                width:42px;
+                height:42px;
+                border-radius:50%;
+                object-fit:cover;
+                border:2px solid #eee;
+              "
+            >
+
+            <div>
+              <strong>${player.name}</strong>
+
+              <div style="font-size:12px;color:var(--muted)">
+                ${ROLES[player.role] || player.role}
+              </div>
             </div>
 
-            <div style="display:flex;gap:8px;align-items:center">
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center">
+
             <div class="badge">OVR ${player.ovr}</div>
+
             ${isAdmin() ? `
-              <button class="btn" style="padding:6px 10px;font-size:12px" onclick="openEditPlayer(${player.id})">✏️</button>
-              <button class="btn btn-danger" style="padding:6px 10px;font-size:12px" onclick="deletePlayer(${player.id})">🗑️</button>
+              <button class="btn"
+                style="padding:6px 10px;font-size:12px"
+                onclick="openEditPlayer(${player.id})">
+                ✏️
+              </button>
+
+              <button class="btn btn-danger"
+                style="padding:6px 10px;font-size:12px"
+                onclick="deletePlayer(${player.id})">
+                🗑️
+              </button>
             ` : ''}
+
           </div>
-          </div>
-        `).join('')}
-      </div>
+
+        </div>
+
+      `).join('')}
 
     </div>
   `;
@@ -1384,6 +1510,49 @@ function chooseLineupPlayer(teamId,positionKey){
     `).join('')}
 
   `);
+}
+
+function chooseBenchPlayer(teamId, slot){
+
+  const players = teamPlayers(teamId);
+
+  openModal(()=>`
+
+    <h2 style="margin-bottom:18px">Seleziona riserva</h2>
+
+    ${players.map(player=>`
+      <div class="player-row">
+
+        <div>
+          <strong>${player.name}</strong>
+
+          <div style="font-size:12px;color:var(--muted)">
+            ${ROLES[player.role]}
+          </div>
+        </div>
+
+        <button class="btn btn-primary"
+          onclick="saveBench(${teamId}, '${slot}', ${player.id})">
+
+          Seleziona
+
+        </button>
+
+      </div>
+    `).join('')}
+
+  `);
+}
+
+async function dropBenchPlayer(event, teamId, slot){
+
+  event.preventDefault();
+
+  if(!draggedPlayerId) return;
+
+  await saveBench(teamId, slot, draggedPlayerId);
+
+  draggedPlayerId = null;
 }
 
 function openEditPlayer(playerId){
