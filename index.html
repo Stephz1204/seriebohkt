@@ -1892,8 +1892,13 @@ function renderTeamDetail(){
             const player = lineupPlayer(team.id,pos.k);
             return `
               <div class="pos" style="left:${pos.x}%;top:${pos.y}%">
-                <div class="pos-shirt" style="background:${team.color || '#1d9e75'}" onclick="chooseLineupPlayer(${team.id},'${pos.k}')" ondragover="allowDrop(event)" ondrop="dropPlayer(event, ${team.id}, '${pos.k}')">
-                  ${player ? playerAvatar(player, team) : ''}
+                <div class="pos-shirt drop-zone" 
+                  style="background:${team.color || '#1d9e75'}" 
+                  data-position-key="${pos.k}"
+                  data-team-id="${team.id}"
+                  onclick="chooseLineupPlayer(${team.id},'${pos.k}')" 
+                  ondragover="allowDrop(event)" 
+                  ondrop="dropPlayer(event, ${team.id}, '${pos.k}')">
                 </div>
                 <div class="pos-name">${player ? player.name + (team.captain_id === player.id ? ' <span class="captain-badge" style="width:14px;height:14px;font-size:8px;display:inline-flex;align-items:center;justify-content:center;margin-left:4px">C</span>' : '') : 'Vuoto'}</div>
               </div>
@@ -1909,7 +1914,12 @@ function renderTeamDetail(){
             const benchP = getBenchPlayer(team.id, `BENCH_${i}`);
             if(benchP){
               return `
-                <div class="bench-slot" onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')" ondragover="window.allowDrop(event)" ondrop="window.dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
+               <div class="bench-slot drop-zone" 
+                  data-slot="BENCH_${i}"
+                  data-team-id="${team.id}"
+                  onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')" 
+                  ondragover="window.allowDrop(event)" 
+                  ondrop="window.dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
                   ${playerAvatar(benchP, team, 'bench')}
                   <div style="flex:1; min-width:0">
                     <div class="bench-player-name">${benchP.name}</div>
@@ -1919,7 +1929,12 @@ function renderTeamDetail(){
               `;
             } else {
               return `
-                <div class="bench-slot-empty" onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')" ondragover="window.allowDrop(event)" ondrop="window.dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
+                <div class="bench-slot-empty drop-zone" 
+                    data-slot="BENCH_${i}"
+                    data-team-id="${team.id}"
+                    onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')" 
+                    ondragover="window.allowDrop(event)" 
+                    ondrop="window.dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
                   <span>➕</span>
                   <span>Slot ${i+1}</span>
                 </div>
@@ -1939,7 +1954,7 @@ function renderTeamDetail(){
   const rowClass = getPlayerRowClass(player.role);
   const isCaptain = team.captain_id === player.id;
   return `
-    <div class="player-row ${rowClass}" draggable="true" ondragstart="dragPlayer(event, ${player.id})" style="cursor:grab">
+    <div class="player-row ${rowClass} draggable" draggable="true" ondragstart="dragPlayer(event, ${player.id})" style="cursor:grab">
       <div style="display:flex;align-items:center;gap:10px;flex:1">
         ${playerAvatar(player, team, 'small')}
         <div>
