@@ -1847,7 +1847,7 @@ function renderTeamDetail(){
                 <div class="pos-shirt" style="background:${team.color || '#1d9e75'}" onclick="chooseLineupPlayer(${team.id},'${pos.k}')" ondragover="allowDrop(event)" ondrop="dropPlayer(event, ${team.id}, '${pos.k}')">
                   ${player ? playerAvatar(player, team) : ''}
                 </div>
-                <div class="pos-name">${player ? player.name : 'Vuoto'}</div>
+                <div class="pos-name">${player ? player.name + (team.captain_id === player.id ? ' <span class="captain-badge" style="width:14px;height:14px;font-size:8px;display:inline-flex;align-items:center;justify-content:center;margin-left:4px">C</span>' : '') : 'Vuoto'}</div>
               </div>
             `;
           }).join('')}
@@ -1888,31 +1888,31 @@ function renderTeamDetail(){
         ${isAdmin() ? `<button class="btn btn-primary" onclick="openCreatePlayer()">+ Giocatore</button>` : ''}
       </div>
       ${sortedPlayers.map(player=>{
-        const rowClass = getPlayerRowClass(player.role);
-        const isCaptain = team.captain_id === player.id;
-        return `
-          <div class="player-row ${rowClass}" draggable="true" ondragstart="dragPlayer(event, ${player.id})" style="cursor:grab">
-            <div style="display:flex;align-items:center;gap:10px;flex:1">
-              ${playerAvatar(player, team, 'small')}
-              <div>
-                <strong>${player.name} ${isCaptain ? '<span style="color:var(--gold)">🏆</span>' : ''}</strong>
-                <div style="font-size:12px;color:var(--muted)">${ROLES[player.role] || player.role}</div>
-                <div style="font-size:11px;color:var(--gold);margin-top:2px">
-                  ⚽ ${player.goals || 0} gol • 🎯 ${player.assists || 0} assist • 🏆 MVP: ${player.mvp_count || 0}
-                </div>
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <div class="badge">OVR ${player.ovr}</div>
-              <div class="badge" style="background:rgba(255,215,0,0.1);color:var(--gold)">💰 ${player.value || 0}M</div>
-              ${isAdmin() ? `
-                <button class="btn" style="padding:6px 10px;font-size:12px" onclick="openEditPlayer(${player.id})">✏️</button>
-                <button class="btn btn-danger" style="padding:6px 10px;font-size:12px" onclick="deletePlayer(${player.id})">🗑️</button>
-              ` : ''}
-            </div>
+  const rowClass = getPlayerRowClass(player.role);
+  const isCaptain = team.captain_id === player.id;
+  return `
+    <div class="player-row ${rowClass}" draggable="true" ondragstart="dragPlayer(event, ${player.id})" style="cursor:grab">
+      <div style="display:flex;align-items:center;gap:10px;flex:1">
+        ${playerAvatar(player, team, 'small')}
+        <div>
+          <strong>${player.name} ${isCaptain ? '<span class="captain-badge" title="Capitano">C</span>' : ''}</strong>
+          <div style="font-size:12px;color:var(--muted)">${ROLES[player.role] || player.role}</div>
+          <div style="font-size:11px;color:var(--gold);margin-top:2px">
+            ⚽ ${player.goals || 0} gol • 🎯 ${player.assists || 0} assist • 🏆 MVP: ${player.mvp_count || 0}
           </div>
-        `;
-      }).join('')}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="badge">OVR ${player.ovr}</div>
+        <div class="badge" style="background:rgba(255,215,0,0.1);color:var(--gold)">💰 ${player.value || 0}M</div>
+        ${isAdmin() ? `
+          <button class="btn" style="padding:6px 10px;font-size:12px" onclick="openEditPlayer(${player.id})">✏️</button>
+          <button class="btn btn-danger" style="padding:6px 10px;font-size:12px" onclick="deletePlayer(${player.id})">🗑️</button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}).join('')}
       ${sortedPlayers.length === 0 ? `<div style="text-align:center;padding:40px;color:var(--muted)">Nessun giocatore in rosa</div>` : ''}
     </div>
   `;
