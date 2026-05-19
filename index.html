@@ -1084,6 +1084,8 @@ async function createPlayer(){
 
   closeModal();
   toast('Giocatore creato');
+  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
+  renderApp();            // <-- AGGIUNGI QUESTA RIGA
 }
 
 async function saveLineup(teamId, positionKey, playerId){
@@ -1103,6 +1105,8 @@ async function saveLineup(teamId, positionKey, playerId){
 
   closeModal();
   toast('Formazione aggiornata');
+  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
+  renderApp();            // <-- AGGIUNGI QUESTA RIGA
 }
 
 async function saveBench(teamId, slot, playerId){
@@ -1153,6 +1157,8 @@ async function saveBench(teamId, slot, playerId){
     console.error('CATCH ERROR:', error);
     toast('Errore: ' + error.message);
   }
+  await silentRefresh();
+  renderApp();
 }
 
 async function createResult(){
@@ -1174,6 +1180,8 @@ async function createResult(){
 
   closeModal();
   toast('Risultato salvato');
+  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
+  renderApp();            // <-- AGGIUNGI QUESTA RIGA
 }
 
 async function deleteMatch(id){
@@ -1181,6 +1189,8 @@ async function deleteMatch(id){
   const { error } = await supabaseClient.from('matches').delete().eq('id', id);
   if(error){ toast(error.message); return; }
   toast('Risultato eliminato');
+  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
+  renderApp();            // <-- AGGIUNGI QUESTA RIGA
 }
 
 async function deletePlayer(id){
@@ -1188,6 +1198,8 @@ async function deletePlayer(id){
   const { error } = await supabaseClient.from('players').delete().eq('id', id);
   if(error){ toast(error.message); return; }
   toast('Giocatore eliminato');
+  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
+  renderApp();            // <-- AGGIUNGI QUESTA RIGA
 }
 
 async function updatePlayer(){
@@ -1204,6 +1216,8 @@ async function updatePlayer(){
   if(error){ toast(error.message); return; }
   closeModal();
   toast('Giocatore aggiornato');
+  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
+  renderApp();            // <-- AGGIUNGI QUESTA RIGA
 }
 
 async function updateTeam(){
@@ -1216,6 +1230,8 @@ async function updateTeam(){
   if(error){ toast(error.message); return; }
   closeModal();
   toast('Squadra aggiornata');
+  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
+  renderApp();            // <-- AGGIUNGI QUESTA RIGA
 }
 
 // ==========================================
