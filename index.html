@@ -1019,9 +1019,12 @@ function renderTeamDetail(){
         </div>
 
         <div style="display:flex;gap:8px;align-items:center">
-          <div class="badge">${players.length} giocatori</div>
-          ${isAdmin() ? `<button class="btn" onclick="openEditTeam(${team.id})">✏️ Modifica squadra</button>` : ''}
-        </div>
+            <div class="badge">${players.length} giocatori</div>
+          
+            <button class="btn" onclick="openEditTeam(${team.id})">
+              ✏️ Modifica formazione
+            </button>
+          </div>
       </div>
     </div>
 
@@ -1031,24 +1034,51 @@ function renderTeamDetail(){
         <h3 style="margin-bottom:16px">Formazione</h3>
 
         <div class="field-view">
-          ${FORMATIONS[team.formation].map(pos=>{
-
-            const player = lineupPlayer(team.id,pos.k);
-
-            return `
-              <div class="pos" style="left:${pos.x}%;top:${pos.y}%">
-                <div class="pos-shirt"
-                  style="background:${team.color}"
-                  onclick="chooseLineupPlayer(${team.id},'${pos.k}')">
-                  ${player ? player.name.slice(0,3).toUpperCase() : pos.k}
-                </div>
-                <div class="pos-name">
-                  ${player ? player.name : 'Vuoto'}
-                </div>
+        ${FORMATIONS[team.formation].map(pos=>{
+      
+          const player = lineupPlayer(team.id,pos.k);
+      
+          return `
+            <div class="pos" style="left:${pos.x}%;top:${pos.y}%">
+              <div class="pos-shirt"
+                style="background:${team.color}"
+                onclick="chooseLineupPlayer(${team.id},'${pos.k}')">
+                ${player ? player.name.slice(0,3).toUpperCase() : pos.k}
               </div>
-            `;
-
-          }).join('')}
+              <div class="pos-name">
+                ${player ? player.name : 'Vuoto'}
+              </div>
+            </div>
+          `;
+      
+        }).join('')}
+      </div>
+      
+      <div style="margin-top:20px">
+        <h3 style="margin-bottom:10px">Riserve</h3>
+      
+        <div style="
+          display:grid;
+          grid-template-columns:repeat(3,1fr);
+          gap:10px;
+        ">
+      
+          ${Array.from({length:9}).map((_,i)=>`
+            <div style="
+              background:#f3f3f3;
+              border:1px dashed #ccc;
+              border-radius:12px;
+              height:70px;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              color:#666;
+              font-size:12px;
+            ">
+              Slot ${i+1}
+            </div>
+          `).join('')}
+      
         </div>
       </div>
 
@@ -1065,11 +1095,27 @@ function renderTeamDetail(){
 
         ${players.map(player=>`
           <div class="player-row">
-            <div>
-              <strong>${player.name}</strong>
-              <div style="font-size:12px;color:var(--muted)">
-                ${ROLES[player.role] || player.role}
+            <div style="display:flex;align-items:center;gap:10px">
+
+              <img
+                src="${player.photo_url || 'https://placehold.co/80'}"
+                style="
+                  width:42px;
+                  height:42px;
+                  border-radius:50%;
+                  object-fit:cover;
+                  border:2px solid #eee;
+                "
+              >
+            
+              <div>
+                <strong>${player.name}</strong>
+            
+                <div style="font-size:12px;color:var(--muted)">
+                  ${ROLES[player.role] || player.role}
+                </div>
               </div>
+            
             </div>
 
             <div style="display:flex;gap:8px;align-items:center">
