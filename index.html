@@ -729,7 +729,6 @@ async function silentRefresh(){
 }
   
 async function bootstrap(){
-  subscribeRealtime();
   state.loading = false;
   renderApp();
 
@@ -766,54 +765,32 @@ const [
   state.lineups = lineupsRes.data || [];
   state.bench = benchRes.data || [];
 
-  let realtimeChannel = null;
-
-function subscribeRealtime(){
-
-  if(realtimeChannel){
-    supabaseClient.removeChannel(realtimeChannel);
-  }
-
-  realtimeChannel = supabaseClient
-    .channel('db-changes')
-
-    .on('postgres_changes',
-      {event:'*',schema:'public',table:'players'},
-      () => silentRefresh()
-    )
-
-    .on('postgres_changes',
-      {event:'*',schema:'public',table:'teams'},
-      () => silentRefresh()
-    )
-
-    .on('postgres_changes',
-      {event:'*',schema:'public',table:'matches'},
-      () => silentRefresh()
-    )
-
-    .on('postgres_changes',
-      {event:'*',schema:'public',table:'lineups'},
-      () => silentRefresh()
-    )
-
-    .on('postgres_changes',
-      {event:'*',schema:'public',table:'bench'},
-      () => silentRefresh()
-    )
-
-    .subscribe();
-}
-
   state.loading = false;
   renderApp();
 }
+
+  
 
 // ==========================================
 // REALTIME
 // ==========================================
 
+// ← FUORI da bootstrap
+let realtimeChannel = null;
 
+function subscribeRealtime() {
+  if (realtimeChannel) {
+    supabaseClient.removeChannel(realtimeChannel);
+  }
+  realtimeChannel = supabaseClient
+    .channel('db-changes')
+    .on('postgres_changes', { event:'*', schema:'public', table:'players' }, () => silentRefresh())
+    .on('postgres_changes', { event:'*', schema:'public', table:'teams' }, () => silentRefresh())
+    .on('postgres_changes', { event:'*', schema:'public', table:'matches' }, () => silentRefresh())
+    .on('postgres_changes', { event:'*', schema:'public', table:'lineups' }, () => silentRefresh())
+    .on('postgres_changes', { event:'*', schema:'public', table:'bench' }, () => silentRefresh())
+    .subscribe();
+}
 
 // ==========================================
 // CRUD
