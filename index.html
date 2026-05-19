@@ -722,7 +722,7 @@ async function silentRefresh(){
 }
   
 async function bootstrap(){
-  state.loading = false;
+  state.loading = true;
   renderApp();
 
   const { data:{user} } = await supabaseClient.auth.getUser();
@@ -735,21 +735,21 @@ async function bootstrap(){
 
   state.user = user;
 
-const [
-  profileRes,
-  teamsRes,
-  playersRes,
-  matchesRes,
-  lineupsRes,
-  benchRes
-] = await Promise.all([
-  supabaseClient.from('profiles').select('*').eq('id',user.id).single(),
-  supabaseClient.from('teams').select('*').order('id'),
-  supabaseClient.from('players').select('*').order('name'),
-  supabaseClient.from('matches').select('*').order('matchday'),
-  supabaseClient.from('lineups').select('*'),
-  supabaseClient.from('bench').select('*')
-]);
+  const [
+    profileRes,
+    teamsRes,
+    playersRes,
+    matchesRes,
+    lineupsRes,
+    benchRes
+  ] = await Promise.all([
+    supabaseClient.from('profiles').select('*').eq('id',user.id).single(),
+    supabaseClient.from('teams').select('*').order('id'),
+    supabaseClient.from('players').select('*').order('name'),
+    supabaseClient.from('matches').select('*').order('matchday'),
+    supabaseClient.from('lineups').select('*'),
+    supabaseClient.from('bench').select('*')
+  ]);
 
   state.profile = profileRes.data;
   state.teams = teamsRes.data || [];
@@ -758,9 +758,11 @@ const [
   state.lineups = lineupsRes.data || [];
   state.bench = benchRes.data || [];
 
+  subscribeRealtime();
   state.loading = false;
   renderApp();
 }
+
 
   
 
@@ -1199,7 +1201,7 @@ function renderTeamDetail(){
               <div class="pos" style="left:${pos.x}%;top:${pos.y}%">
 
                 <div class="pos-shirt"
-                  style="background:${team.color}"
+                  style="background:${getTeamStyle(team.name).color}"
                   onclick="chooseLineupPlayer(${team.id},'${pos.k}')"
                   ondragover="allowDrop(event)"
                   ondrop="dropPlayer(event, ${team.id}, '${pos.k}')">
