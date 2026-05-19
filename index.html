@@ -1319,6 +1319,78 @@ function renderTeamDetail(){
   `;
 }
 
+  function renderPlayersGroup(title, list){
+
+  if(list.length === 0) return '';
+
+  return `
+    <div style="margin-bottom:24px">
+
+      <h4 style="
+        margin-bottom:12px;
+        padding-bottom:6px;
+        border-bottom:1px solid var(--border);
+      ">
+        ${title}
+      </h4>
+
+      ${list.map(player => `
+
+        <div class="player-row"
+          draggable="true"
+          ondragstart="dragPlayer(event, ${player.id})">
+
+          <div style="display:flex;align-items:center;gap:10px">
+
+            <img
+              src="${player.photo_url || 'https://placehold.co/80'}"
+              style="
+                width:42px;
+                height:42px;
+                border-radius:50%;
+                object-fit:cover;
+                border:2px solid #eee;
+              "
+            >
+
+            <div>
+              <strong>${player.name}</strong>
+
+              <div style="font-size:12px;color:var(--muted)">
+                ${ROLES[player.role] || player.role}
+              </div>
+            </div>
+
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center">
+
+            <div class="badge">OVR ${player.ovr}</div>
+
+            ${isAdmin() ? `
+              <button class="btn"
+                style="padding:6px 10px;font-size:12px"
+                onclick="openEditPlayer(${player.id})">
+                ✏️
+              </button>
+
+              <button class="btn btn-danger"
+                style="padding:6px 10px;font-size:12px"
+                onclick="deletePlayer(${player.id})">
+                🗑️
+              </button>
+            ` : ''}
+
+          </div>
+
+        </div>
+
+      `).join('')}
+
+    </div>
+  `;
+}
+
 function renderCalendar(){
   const serateRaggruppate = {};
   CALENDAR.forEach(item => {
@@ -1576,26 +1648,25 @@ function chooseBenchPlayer(teamId, slot){
 
     <h2 style="margin-bottom:18px">Seleziona riserva</h2>
 
-    ${players.map(player=>`
-      <div class="player-row">
+${renderPlayersGroup('Portieri', players.filter(p => p.role === 'P'))}
 
-        <div>
-          <strong>${player.name}</strong>
+${renderPlayersGroup('Difensori',
+  players.filter(p =>
+    ['TD','TS','DC'].includes(p.role)
+  )
+)}
 
-          <div style="font-size:12px;color:var(--muted)">
-            ${ROLES[player.role]}
-          </div>
-        </div>
+${renderPlayersGroup('Centrocampisti',
+  players.filter(p =>
+    ['CC','CDC','COC'].includes(p.role)
+  )
+)}
 
-        <button class="btn btn-primary"
-          onclick="saveBench(${teamId}, '${slot}', ${player.id})">
-
-          Seleziona
-
-        </button>
-
-      </div>
-    `).join('')}
+${renderPlayersGroup('Attaccanti',
+  players.filter(p =>
+    ['AD','AS','ATT'].includes(p.role)
+  )
+)}
 
   `);
 }
