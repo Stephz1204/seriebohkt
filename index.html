@@ -198,6 +198,33 @@ button,input,select{
   margin:auto;
   cursor:pointer;
 }
+
+.player-avatar{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  font-weight:700;
+  color:white;
+  border:2px solid rgba(255,255,255,.35);
+  background:rgba(255,255,255,.12);
+  backdrop-filter:blur(3px);
+}
+
+.player-avatar.small{
+  width:42px;
+  height:42px;
+  font-size:12px;
+}
+
+.player-avatar.large{
+  width:54px;
+  height:54px;
+  font-size:16px;
+}
 .pos-name{
   color:white;
   font-size:10px;
@@ -478,6 +505,50 @@ const ROLES = {
   ATT:'Attaccante'
 };
 
+  const TEAM_STYLES = {
+
+  'Celta Vigo': {
+    color:'#1f9d55'
+  },
+
+  'Manchester City': {
+    color:'#7ad7ff'
+  },
+
+  'Ajax': {
+    color:'linear-gradient(90deg,#fff 0%,#fff 35%,#d60000 35%,#d60000 65%,#fff 65%,#fff 100%)'
+  },
+
+  'Bari': {
+    color:'linear-gradient(90deg,#fff 0%,#fff 50%,#c40000 50%,#c40000 100%)'
+  },
+
+  'Tottenham': {
+    color:'#ffffff'
+  },
+
+  'Liverpool': {
+    color:'#c8102e'
+  },
+
+  'PSG': {
+    color:'linear-gradient(90deg,#0a2a66 0%,#0a2a66 40%,#ffffff 40%,#ffffff 48%,#d6002a 48%,#d6002a 52%,#ffffff 52%,#ffffff 60%,#0a2a66 60%,#0a2a66 100%)'
+  },
+
+  'Jeonbuk Motors': {
+    color:'#ffd400'
+  },
+
+  'Lens': {
+    color:'linear-gradient(90deg,#0f0f0f 0%,#0f0f0f 50%,#1d9e75 50%,#1d9e75 100%)'
+  },
+
+  'Como': {
+    color:'#008cff'
+  }
+
+};
+
 const CALENDAR = [
   { serata:1, giornata:1, partite:[['Stefano','Alessio'],['Luigi','Gabriele'],['Luca','Matteo'],['Mario','Mattia'],['Domenico','Giulio']] },
   { serata:1, giornata:2, partite:[['Stefano','Gabriele'],['Alessio','Matteo'],['Luigi','Mattia'],['Luca','Giulio'],['Mario','Domenico']] },
@@ -545,6 +616,14 @@ function currentTeam(){
   return state.teams.find(t=>t.id===state.selectedTeam);
 }
 
+  function getTeamStyle(teamName){
+
+  return TEAM_STYLES[teamName] || {
+    color:'#1d9e75'
+  };
+
+}
+
 function teamPlayers(teamId){
   return state.players.filter(p=>p.team_id===teamId);
 }
@@ -569,6 +648,21 @@ function isAdmin(){
   return state.profile?.role === 'admin';
 }
 
+  function playerAvatar(player, team, size=''){
+  const initials = player.name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .substring(0,2)
+    .toUpperCase();
+
+  return `
+    <div class="player-avatar ${size}"
+      style="background:${team.color}">
+      ${initials}
+    </div>
+  `;
+}
 
 // ==========================================
 // AUTH
@@ -635,7 +729,8 @@ async function silentRefresh(){
 }
   
 async function bootstrap(){
-  state.loading = true;
+  subscribeRealtime();
+  state.loading = false;
   renderApp();
 
   const { data:{user} } = await supabaseClient.auth.getUser();
@@ -717,16 +812,7 @@ function subscribeRealtime(){
 // ==========================================
 // REALTIME
 // ==========================================
-function subscribeRealtime(){
-  supabaseClient
-  .channel('db-changes')
-  .on('postgres_changes',{event:'*',schema:'public',table:'players'}, silentRefresh)
-  .on('postgres_changes',{event:'*',schema:'public',table:'teams'}, silentRefresh)
-  .on('postgres_changes',{event:'*',schema:'public',table:'matches'}, silentRefresh)
-  .on('postgres_changes',{event:'*',schema:'public',table:'lineups'}, silentRefresh)
-  .on('postgres_changes',{event:'*',schema:'public',table:'bench'}, silentRefresh)
-  .subscribe();
-}
+
 
 
 // ==========================================
@@ -1149,13 +1235,7 @@ function renderTeamDetail(){
                   ondrop="dropPlayer(event, ${team.id}, '${pos.k}')">
 
                   ${player
-                    ? `<img src="${player.photo_url || 'https://placehold.co/80'}"
-                        style="
-                          width:100%;
-                          height:100%;
-                          border-radius:50%;
-                          object-fit:cover;
-                        ">`
+                    ? playerAvatar(player, team)
                     : pos.k
                   }
 
@@ -1212,16 +1292,7 @@ function renderTeamDetail(){
                 ${
                   benchP
                   ? `
-                    <img
-                      src="${benchP.photo_url || 'https://placehold.co/80'}"
-                      style="
-                        width:42px;
-                        height:42px;
-                        border-radius:50%;
-                        object-fit:cover;
-                        margin-bottom:6px;
-                      "
-                    >
+                    ${playerAvatar(benchP, team, 'small')}
 
                     <div style="font-size:12px;font-weight:600">
                       ${benchP.name}
@@ -1268,16 +1339,7 @@ function renderTeamDetail(){
 
           <div style="display:flex;align-items:center;gap:10px">
 
-            <img
-              src="${player.photo_url || 'https://placehold.co/80'}"
-              style="
-                width:42px;
-                height:42px;
-                border-radius:50%;
-                object-fit:cover;
-                border:2px solid #eee;
-              "
-            >
+            ${playerAvatar(player, team, 'small')}
 
             <div>
               <strong>${player.name}</strong>
