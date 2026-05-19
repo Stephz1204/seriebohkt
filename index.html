@@ -679,88 +679,6 @@ h1, h2, h3, h4 {
   box-shadow: 0 1px 2px rgba(0,0,0,0.2);
   vertical-align: middle;
 }
-
-  /* Stili per drag & drop mobile */
-.draggable {
-  cursor: grab;
-  touch-action: none; /* Migliora il drag su mobile */
-  transition: transform 0.1s ease, opacity 0.2s ease;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.draggable:active {
-  cursor: grabbing;
-}
-
-.dragging {
-  opacity: 0.4;
-  transform: scale(0.95);
-}
-
-.drag-over {
-  border: 2px dashed var(--green);
-  background: rgba(0, 255, 136, 0.1);
-  transform: scale(1.02);
-}
-
-/* Zona di rilascio */
-.drop-zone {
-  transition: all 0.2s ease;
-}
-
-@media (max-width: 768px) {
-  .draggable {
-    cursor: default; /* Su mobile non mostra grab ma funziona lo stesso */
-  }
-  
-  .bench-slot, .bench-slot-empty, .pos-shirt {
-    touch-action: manipulation;
-  }
-}
-
-  /* Disabilita selezione durante drag su mobile */
-.dragging * {
-  user-select: none !important;
-  -webkit-touch-callout: none !important;
-}
-
-/* Disabilita selezione testo sugli elementi draggabili */
-.draggable {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/* Previene lo scroll durante il drag */
-.no-scroll {
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
-  height: 100%;
-}
-
-  /* Disabilita selezione testo su tutta la pagina durante il drag */
-.dragging, .dragging * {
-  user-select: none !important;
-  -webkit-user-select: none !important;
-  -webkit-touch-callout: none !important;
-}
-
-/* Disabilita il menu contestuale su lungo tap */
-.draggable {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/* Disabilita selezione sugli elementi della rosa */
-.player-row {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-  
 </style>
 </head>
 <body>
@@ -992,23 +910,12 @@ const ROLES = {
   ATT:'Punta'
 };
 
-  // Ordine dei ruoli per la visualizzazione
 const roleOrder = {
-  'P': 1,
-  'DC': 2,
-  'TD': 3,
-  'TS': 4,
-  'CDC': 5,
-  'CC': 6,
-  'COC': 7,
-  'RM': 8,
-  'LM': 9,
-  'AD': 10,
-  'AS': 11,
-  'ATT': 12
+  'P': 1, 'DC': 2, 'TD': 3, 'TS': 4,
+  'CDC': 5, 'CC': 6, 'COC': 7, 'RM': 8, 'LM': 9,
+  'AD': 10, 'AS': 11, 'ATT': 12
 };
 
-// Funzione per ordinare i giocatori per ruolo
 function sortPlayersByRole(players) {
   return [...players].sort((a, b) => {
     const orderA = roleOrder[a.role] || 99;
@@ -1018,7 +925,6 @@ function sortPlayersByRole(players) {
   });
 }
 
-// Funzione per ottenere la classe CSS in base al ruolo
 function getPlayerRowClass(role) {
   if (role === 'P') return 'player-row-portieri';
   if (['DC', 'TD', 'TS'].includes(role)) return 'player-row-difensori';
@@ -1078,20 +984,11 @@ const state = {
   loading:true,
   marketFilter:{team:'all', role:'all', minValue:0, maxValue:9999}
 };
-  
+
 // ==========================================
 // GLOBAL VARIABLES
 // ==========================================
 let realtimeChannel = null;
-let draggedPlayerId = null;
-let draggedElement = null;
-let draggedPlayerIdGlobal = null;
-let draggedSourceType = null;
-let draggedSourceKey = null;
-let draggedSourceSlot = null;
-let touchStartX = 0;
-let touchStartY = 0;
-let touchTarget = null;
 
 // ==========================================
 // HELPERS
@@ -1130,12 +1027,8 @@ function currentTeam(){
 
 function getTeamStyle(teamName) {
   const team = state.teams.find(t => t.name === teamName);
-  if (team && team.color) {
-    return { color: team.color };
-  }
-  if (teamName && TEAM_STYLES[teamName]) {
-    return TEAM_STYLES[teamName];
-  }
+  if (team && team.color) return { color: team.color };
+  if (teamName && TEAM_STYLES[teamName]) return TEAM_STYLES[teamName];
   return { color: '#1d9e75' };
 }
 
@@ -1150,14 +1043,9 @@ function lineupPlayer(teamId,key){
 }
 
 function getBenchPlayer(teamId,slot){
-  console.log('Bench data:', state.bench);
-  console.log('Looking for:', teamId, slot);
   const row = state.bench.find(b => b.team_id === teamId && b.slot === slot);
-  console.log('Found row:', row);
   if(!row) return null;
-  const player = state.players.find(p => p.id === row.player_id);
-  console.log('Found player:', player);
-  return player || null;
+  return state.players.find(p=>p.id===row.player_id);
 }
 
 function isAdmin(){
@@ -1166,11 +1054,8 @@ function isAdmin(){
 
 function playerAvatar(player, team, size = '') {
   let bgColor = '#1d9e75';
-  if (team && team.color) {
-    bgColor = team.color;
-  } else if (team && typeof team === 'string') {
-    bgColor = team;
-  }
+  if (team && team.color) bgColor = team.color;
+  else if (team && typeof team === 'string') bgColor = team;
   return `<div class="player-avatar ${size}" style="background:${bgColor}"></div>`;
 }
 
@@ -1180,14 +1065,8 @@ function playerAvatar(player, team, size = '') {
 async function login(){
   const email = qs('#login-email').value;
   const password = qs('#login-password').value;
-
   const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-  if(error){
-    toast(error.message);
-    return;
-  }
-
+  if(error){ toast(error.message); return; }
   await bootstrap();
 }
 
@@ -1207,218 +1086,26 @@ async function silentRefresh(){
     supabaseClient.from('lineups').select('*'),
     supabaseClient.from('bench').select('*')
   ]);
-
   state.teams = teamsRes.data || [];
   state.players = playersRes.data || [];
   state.matches = matchesRes.data || [];
   state.lineups = lineupsRes.data || [];
   state.bench = benchRes.data || [];
-
   const active = document.activeElement;
   const typing = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT');
-
-  if(!typing){
-    renderApp();
-  }
+  if(!typing) renderApp();
 }
 
-  // ==========================================
-// FUNZIONI PER RISULTATI CON MARCATORI
-// ==========================================
-
-let currentGoalInputs = [];
-
-function updateGoalInputs() {
-  const homeGoals = parseInt(qs('#m-hg').value) || 0;
-  const awayGoals = parseInt(qs('#m-ag').value) || 0;
-  const totalGoals = homeGoals + awayGoals;
-  
-  const container = qs('#goals-list');
-  if (!container) return;
-  
-  let html = '';
-  for (let i = 0; i < totalGoals; i++) {
-    const isHome = i < homeGoals;
-    html += `
-      <div class="field" style="margin-top:10px; padding:10px; background:rgba(255,255,255,0.03); border-radius:12px">
-        <label class="label">⚽ Gol ${i+1} - ${isHome ? 'CASA' : 'OSPITE'}</label>
-        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px">
-          <select id="goal-player-${i}" class="input" style="flex:2" onchange="checkAssistNeeded(${i})">
-            <option value="">Seleziona marcatore</option>
-            ${loadPlayerOptionsForTeam(isHome ? qs('#m-home').value : qs('#m-away').value)}
-          </select>
-          <input type="number" id="goal-minute-${i}" placeholder="Minuto" class="input" style="flex:1" min="1" max="120">
-          <div id="assist-container-${i}" style="display:none; flex:2">
-            <select id="assist-player-${i}" class="input">
-              <option value="">Seleziona assistman</option>
-              ${loadPlayerOptionsForTeam(isHome ? qs('#m-home').value : qs('#m-away').value)}
-            </select>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  container.innerHTML = html;
-  currentGoalInputs = Array(totalGoals).fill().map((_, i) => i);
-}
-
-function checkAssistNeeded(goalIndex) {
-  const assistContainer = qs(`#assist-container-${goalIndex}`);
-  if (assistContainer) {
-    assistContainer.style.display = 'block';
-  }
-}
-
-function loadPlayerOptionsForTeam(teamId) {
-  if (!teamId) return '<option value="">Seleziona prima la squadra</option>';
-  const players = teamPlayers(Number(teamId));
-  return players.map(p => `<option value="${p.id}">${p.name} (${ROLES[p.role] || p.role})</option>`).join('');
-}
-
-async function createResultWithDetails() {
-  const matchday = Number(qs('#m-day').value);
-  const homeTeamId = Number(qs('#m-home').value);
-  const awayTeamId = Number(qs('#m-away').value);
-  const homeGoals = Number(qs('#m-hg').value);
-  const awayGoals = Number(qs('#m-ag').value);
-  
-  if (!homeTeamId || !awayTeamId) {
-    toast('Seleziona entrambe le squadre');
-    return;
-  }
-  
-  // Inserisci il risultato
-  const { data: match, error: matchError } = await supabaseClient
-    .from('matches')
-    .insert({
-      matchday: matchday,
-      home_team: homeTeamId,
-      away_team: awayTeamId,
-      home_goals: homeGoals,
-      away_goals: awayGoals,
-      played: true
-    })
-    .select()
-    .single();
-  
-  if (matchError) {
-    toast(matchError.message);
-    return;
-  }
-  
-  // Inserisci marcatori e assist
-  const totalGoals = homeGoals + awayGoals;
-  const goalDetails = [];
-  const assistDetails = [];
-  const goalsByPlayer = {};
-  
-  for (let i = 0; i < totalGoals; i++) {
-    const playerId = qs(`#goal-player-${i}`).value;
-    const minute = qs(`#goal-minute-${i}`).value;
-    const assistPlayerId = qs(`#assist-player-${i}`)?.value;
-    const isHome = i < homeGoals;
-    const teamId = isHome ? homeTeamId : awayTeamId;
-    
-    if (playerId && minute) {
-      goalDetails.push({
-        match_id: match.id,
-        player_id: Number(playerId),
-        team_id: teamId,
-        action_type: 'goal',
-        minute: Number(minute)
-      });
-      
-      // Conta gol per giocatore (per MVP)
-      goalsByPlayer[playerId] = (goalsByPlayer[playerId] || 0) + 1;
-      
-      if (assistPlayerId) {
-        assistDetails.push({
-          match_id: match.id,
-          player_id: Number(assistPlayerId),
-          team_id: teamId,
-          action_type: 'assist',
-          minute: Number(minute)
-        });
-      }
-    }
-  }
-  
-  // Inserisci tutti i gol
-  if (goalDetails.length > 0) {
-    const { error: goalError } = await supabaseClient
-      .from('match_details')
-      .insert(goalDetails);
-    if (goalError) console.error('Errore inserimento gol:', goalError);
-  }
-  
-  // Inserisci tutti gli assist
-  if (assistDetails.length > 0) {
-    const { error: assistError } = await supabaseClient
-      .from('match_details')
-      .insert(assistDetails);
-    if (assistError) console.error('Errore inserimento assist:', assistError);
-  }
-  
-  // Determina MVP (giocatore con più gol, o primo marcatore)
-  let mvpPlayerId = null;
-  let maxGoals = 0;
-  for (const [playerId, goals] of Object.entries(goalsByPlayer)) {
-    if (goals > maxGoals) {
-      maxGoals = goals;
-      mvpPlayerId = playerId;
-    }
-  }
-  
-  // Se nessun gol, MVP è il portiere con più parate (per ora prendiamo un giocatore a caso)
-  if (!mvpPlayerId && goalDetails.length === 0) {
-    // MVP assegnato al portiere della squadra vincitrice
-    if (homeGoals > awayGoals) {
-      const homeGoalkeeper = teamPlayers(homeTeamId).find(p => p.role === 'P');
-      if (homeGoalkeeper) mvpPlayerId = homeGoalkeeper.id;
-    } else if (awayGoals > homeGoals) {
-      const awayGoalkeeper = teamPlayers(awayTeamId).find(p => p.role === 'P');
-      if (awayGoalkeeper) mvpPlayerId = awayGoalkeeper.id;
-    }
-  }
-  
-  if (mvpPlayerId) {
-    const mvpTeam = goalDetails.find(g => g.player_id === Number(mvpPlayerId))?.team_id || 
-                    (homeGoals > awayGoals ? homeTeamId : awayTeamId);
-    await supabaseClient.from('match_mvp').insert({
-      match_id: match.id,
-      player_id: Number(mvpPlayerId),
-      team_id: mvpTeam
-    });
-  }
-  
-  // Chiama la funzione per aggiornare i valori dei giocatori
-  await supabaseClient.rpc('update_player_values_after_match', { match_id_param: match.id });
-  
-  await silentRefresh();
-  closeModal();
-  toast('Risultato salvato con statistiche!');
-  renderApp();
-}
-
-// Funzione per caricare i giocatori nel modal (chiamata onchange)
-function loadPlayersForResult() {
-  updateGoalInputs();
-}
-  
 async function bootstrap(){
   state.loading = true;
   renderApp();
-
   const { data:{user} } = await supabaseClient.auth.getUser();
-
   if(!user){
     state.loading = false;
     renderApp();
     return;
   }
-
   state.user = user;
-
   const [profileRes, teamsRes, playersRes, matchesRes, lineupsRes, benchRes] = await Promise.all([
     supabaseClient.from('profiles').select('*').eq('id',user.id).single(),
     supabaseClient.from('teams').select('*').order('id'),
@@ -1427,17 +1114,14 @@ async function bootstrap(){
     supabaseClient.from('lineups').select('*'),
     supabaseClient.from('bench').select('*')
   ]);
-
   state.profile = profileRes.data;
   state.teams = teamsRes.data || [];
   state.players = playersRes.data || [];
   state.matches = matchesRes.data || [];
   state.lineups = lineupsRes.data || [];
   state.bench = benchRes.data || [];
-
   subscribeRealtime();
   state.loading = false;
-  initTouchSupport();
   renderApp();
 }
 
@@ -1445,9 +1129,7 @@ async function bootstrap(){
 // REALTIME
 // ==========================================
 function subscribeRealtime() {
-  if (realtimeChannel) {
-    supabaseClient.removeChannel(realtimeChannel);
-  }
+  if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
   realtimeChannel = supabaseClient
     .channel('db-changes')
     .on('postgres_changes', { event:'*', schema:'public', table:'players' }, () => silentRefresh())
@@ -1468,29 +1150,19 @@ async function createPlayer(){
     role:qs('#p-role').value,
     ovr:Number(qs('#p-ovr').value || 0),
     value:Number(qs('#p-value').value || 0),
-    goals:0,
-    assists:0,
-    injured:false
+    goals:0, assists:0, injured:false
   };
-
   const { error } = await supabaseClient.from('players').insert(payload);
-
-  if(error){
-    toast(error.message);
-    return;
-  }
-
+  if(error){ toast(error.message); return; }
   closeModal();
   toast('Giocatore creato');
-  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
-  renderApp();            // <-- AGGIUNGI QUESTA RIGA
+  await silentRefresh();
+  renderApp();
 }
 
 async function saveLineup(teamId, positionKey, playerId){
   await supabaseClient.from('lineups').delete().eq('team_id', teamId).eq('player_id', playerId);
-
   const existing = state.lineups.find(l => l.team_id===teamId && l.position_key===positionKey);
-
   if(existing){
     await supabaseClient.from('lineups').update({player_id: playerId}).eq('id', existing.id);
     existing.player_id = playerId;
@@ -1498,65 +1170,33 @@ async function saveLineup(teamId, positionKey, playerId){
     const { data } = await supabaseClient.from('lineups').insert({ team_id:teamId, position_key:positionKey, player_id:playerId }).select().single();
     if(data) state.lineups.push(data);
   }
-
   state.lineups = state.lineups.filter(l => !(l.team_id===teamId && l.player_id===playerId && l.position_key!==positionKey));
-
   closeModal();
   toast('Formazione aggiornata');
-  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
-  renderApp();            // <-- AGGIUNGI QUESTA RIGA
+  await silentRefresh();
+  renderApp();
 }
 
 async function saveBench(teamId, slot, playerId){
-  console.log('=== SAVEBENCH CHIAMATA ===');
-  console.log('teamId:', teamId);
-  console.log('slot:', slot);
-  console.log('playerId:', playerId);
-  
   if(!teamId || !slot || !playerId) {
-    console.error('Parametri mancanti!');
     toast('Errore: parametri mancanti');
     return;
   }
-  
   try {
     const existing = state.bench.find(b => b.team_id === teamId && b.slot === slot);
-    console.log('Record esistente:', existing);
-    
-    let result;
     if(existing){
-      console.log('AGGIORNAMENTO');
-      result = await supabaseClient
-        .from('bench')
-        .update({ player_id: playerId })
-        .eq('id', existing.id);
+      await supabaseClient.from('bench').update({ player_id: playerId }).eq('id', existing.id);
+      existing.player_id = playerId;
     } else {
-      console.log('INSERIMENTO NUOVO');
-      result = await supabaseClient
-        .from('bench')
-        .insert({ team_id: teamId, slot: slot, player_id: playerId });
+      await supabaseClient.from('bench').insert({ team_id: teamId, slot: slot, player_id: playerId });
     }
-    
-    console.log('Risultato operazione:', result);
-    
-    if(result.error){
-      console.error('ERRORE:', result.error);
-      toast('Errore: ' + result.error.message);
-      return;
-    }
-    
     await silentRefresh();
-    console.log('Refresh completato, nuovi bench:', state.bench);
     closeModal();
     toast('Panchina aggiornata!');
     renderApp();
-    
   } catch(error) {
-    console.error('CATCH ERROR:', error);
     toast('Errore: ' + error.message);
   }
-  await silentRefresh();
-  renderApp();
 }
 
 async function createResult(){
@@ -1568,18 +1208,12 @@ async function createResult(){
     away_goals:Number(qs('#m-ag').value),
     played:true
   };
-
   const { error } = await supabaseClient.from('matches').insert(payload);
-
-  if(error){
-    toast(error.message);
-    return;
-  }
-
+  if(error){ toast(error.message); return; }
   closeModal();
   toast('Risultato salvato');
-  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
-  renderApp();            // <-- AGGIUNGI QUESTA RIGA
+  await silentRefresh();
+  renderApp();
 }
 
 async function deleteMatch(id){
@@ -1587,8 +1221,8 @@ async function deleteMatch(id){
   const { error } = await supabaseClient.from('matches').delete().eq('id', id);
   if(error){ toast(error.message); return; }
   toast('Risultato eliminato');
-  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
-  renderApp();            // <-- AGGIUNGI QUESTA RIGA
+  await silentRefresh();
+  renderApp();
 }
 
 async function deletePlayer(id){
@@ -1596,8 +1230,8 @@ async function deletePlayer(id){
   const { error } = await supabaseClient.from('players').delete().eq('id', id);
   if(error){ toast(error.message); return; }
   toast('Giocatore eliminato');
-  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
-  renderApp();            // <-- AGGIUNGI QUESTA RIGA
+  await silentRefresh();
+  renderApp();
 }
 
 async function updatePlayer(){
@@ -1614,8 +1248,8 @@ async function updatePlayer(){
   if(error){ toast(error.message); return; }
   closeModal();
   toast('Giocatore aggiornato');
-  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
-  renderApp();            // <-- AGGIUNGI QUESTA RIGA
+  await silentRefresh();
+  renderApp();
 }
 
 async function updateTeam(){
@@ -1628,8 +1262,8 @@ async function updateTeam(){
   if(error){ toast(error.message); return; }
   closeModal();
   toast('Squadra aggiornata');
-  await silentRefresh();  // <-- AGGIUNGI QUESTA RIGA
-  renderApp();            // <-- AGGIUNGI QUESTA RIGA
+  await silentRefresh();
+  renderApp();
 }
 
 // ==========================================
@@ -1637,118 +1271,55 @@ async function updateTeam(){
 // ==========================================
 async function transferPlayer(playerId, newTeamId){
   if(!confirm('Sei sicuro di voler trasferire questo giocatore?')) return;
-  
   const player = state.players.find(p => p.id === playerId);
   const oldTeam = state.teams.find(t => t.id === player.team_id);
   const newTeam = state.teams.find(t => t.id === newTeamId);
-  
   const { error } = await supabaseClient.from('players').update({ team_id: newTeamId }).eq('id', playerId);
-    
-  if(error){
-    toast(error.message);
-    return;
-  }
-  
+  if(error){ toast(error.message); return; }
   await supabaseClient.from('lineups').delete().eq('team_id', player.team_id).eq('player_id', playerId);
   await supabaseClient.from('bench').delete().eq('team_id', player.team_id).eq('player_id', playerId);
-  
   toast(`${player.name} trasferito da ${oldTeam?.name} a ${newTeam?.name}`);
   closeModal();
+  await silentRefresh();
+  renderApp();
 }
 
 function openTransferModal(playerId){
   const player = state.players.find(p => p.id === playerId);
   const currentTeam = state.teams.find(t => t.id === player.team_id);
   const otherTeams = state.teams.filter(t => t.id !== player.team_id);
-  
   openModal(() => `
     <h2 style="margin-bottom:18px">Trasferimento Giocatore</h2>
-    <div class="field">
-      <label class="label">Giocatore</label>
-      <div style="font-size:18px;font-weight:600;margin-top:6px">${player.name}</div>
-    </div>
-    <div class="field">
-      <label class="label">Squadra attuale</label>
-      <div style="margin-top:6px">${currentTeam?.name}</div>
-    </div>
-    <div class="field">
-      <label class="label">Nuova squadra</label>
-      <select id="transfer-team" class="input">
-        ${otherTeams.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
-      </select>
-    </div>
-    <div style="display:flex;gap:10px;margin-top:18px">
-      <button class="btn" onclick="closeModal()">Annulla</button>
-      <button class="btn btn-primary" onclick="transferPlayer(${playerId}, Number(qs('#transfer-team').value))">
-        Conferma Trasferimento
-      </button>
-    </div>
+    <div class="field"><label class="label">Giocatore</label><div style="font-size:18px;font-weight:600;margin-top:6px">${player.name}</div></div>
+    <div class="field"><label class="label">Squadra attuale</label><div style="margin-top:6px">${currentTeam?.name}</div></div>
+    <div class="field"><label class="label">Nuova squadra</label><select id="transfer-team" class="input">${otherTeams.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
+    <div style="display:flex;gap:10px;margin-top:18px"><button class="btn" onclick="closeModal()">Annulla</button><button class="btn btn-primary" onclick="transferPlayer(${playerId}, Number(qs('#transfer-team').value))">Conferma Trasferimento</button></div>
   `);
 }
+
 function renderMarket(){
   let filtered = [...state.players];
-  
-  if(state.marketFilter.team !== 'all'){
-    filtered = filtered.filter(p => p.team_id === Number(state.marketFilter.team));
-  }
-  
-  if(state.marketFilter.role !== 'all'){
-    filtered = filtered.filter(p => p.role === state.marketFilter.role);
-  }
-  
+  if(state.marketFilter.team !== 'all') filtered = filtered.filter(p => p.team_id === Number(state.marketFilter.team));
+  if(state.marketFilter.role !== 'all') filtered = filtered.filter(p => p.role === state.marketFilter.role);
   filtered = filtered.filter(p => (p.value || 0) >= state.marketFilter.minValue && (p.value || 0) <= state.marketFilter.maxValue);
-  
-  // ORDINE PER VALORE ATTUALE (crediti spesi/valore attuale)
   filtered.sort((a,b) => (b.value || 0) - (a.value || 0));
-  
   const totalValue = filtered.reduce((sum, p) => sum + (p.value || 0), 0);
-  
   return `
     <div class="card" style="margin-bottom:16px">
       <h2 style="margin-bottom:16px">📊 Calciomercato</h2>
       <div class="filter-bar">
-        <select id="market-team-filter" onchange="applyMarketFilters()">
-          <option value="all">Tutte le squadre</option>
-          ${state.teams.map(t => `<option value="${t.id}" ${state.marketFilter.team == t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
-        </select>
-        <select id="market-role-filter" onchange="applyMarketFilters()">
-          <option value="all">Tutti i ruoli</option>
-          ${Object.entries(ROLES).map(([k,v]) => `<option value="${k}" ${state.marketFilter.role === k ? 'selected' : ''}>${v}</option>`).join('')}
-        </select>
+        <select id="market-team-filter" onchange="applyMarketFilters()"><option value="all">Tutte le squadre</option>${state.teams.map(t => `<option value="${t.id}" ${state.marketFilter.team == t.id ? 'selected' : ''}>${t.name}</option>`).join('')}</select>
+        <select id="market-role-filter" onchange="applyMarketFilters()"><option value="all">Tutti i ruoli</option>${Object.entries(ROLES).map(([k,v]) => `<option value="${k}" ${state.marketFilter.role === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
         <input type="number" id="market-min-value" placeholder="Valore min (M€)" value="${state.marketFilter.minValue}" onchange="applyMarketFilters()" style="width:120px">
         <input type="number" id="market-max-value" placeholder="Valore max (M€)" value="${state.marketFilter.maxValue}" onchange="applyMarketFilters()" style="width:120px">
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div class="badge">${filtered.length} giocatori</div>
-        <div class="badge">💰 Valore totale mercato: €${totalValue}M</div>
-      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div class="badge">${filtered.length} giocatori</div><div class="badge">💰 Valore totale mercato: €${totalValue}M</div></div>
     </div>
-    <div class="card">
-      <h3 style="margin-bottom:16px">🏆 Lista Giocatori (dal valore più alto)</h3>
+    <div class="card"><h3 style="margin-bottom:16px">🏆 Lista Giocatori (dal valore più alto)</h3>
       ${filtered.map(player => {
         const team = state.teams.find(t => t.id === player.team_id);
         const rowClass = getPlayerRowClass(player.role);
-        return `
-          <div class="player-row ${rowClass}">
-            <div style="display:flex;align-items:center;gap:10px;flex:1">
-              <div class="player-avatar small" style="background:${getTeamStyle(team?.name).color}"></div>
-              <div>
-                <strong>${player.name}</strong>
-                <div style="font-size:12px;color:var(--muted)">
-                  ${ROLES[player.role] || player.role} • ${team?.name || 'Senza squadra'}
-                </div>
-                <div style="font-size:11px;color:var(--gold);margin-top:2px">
-                  ⚽ ${player.goals || 0} gol • 🎯 ${player.assists || 0} assist • 🏆 MVP: ${player.mvp_count || 0}
-                </div>
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <div class="badge" style="background:#e8f5e9;color:#2e7d32">💰 €${player.value || 0}M</div>
-              <div class="badge">OVR ${player.ovr}</div>
-              ${isAdmin() ? `<button class="btn btn-warning" style="padding:6px 12px" onclick="openTransferModal(${player.id})">🔄 Trasferisci</button>` : ''}
-            </div>
-          </div>
-        `;
+        return `<div class="player-row ${rowClass}"><div style="display:flex;align-items:center;gap:10px;flex:1"><div class="player-avatar small" style="background:${getTeamStyle(team?.name).color}"></div><div><strong>${player.name}</strong><div style="font-size:12px;color:var(--muted)">${ROLES[player.role] || player.role} • ${team?.name || 'Senza squadra'}</div><div style="font-size:11px;color:var(--gold);margin-top:2px">⚽ ${player.goals || 0} gol • 🎯 ${player.assists || 0} assist • 🏆 MVP: ${player.mvp_count || 0}</div></div></div><div style="display:flex;gap:8px;align-items:center"><div class="badge" style="background:#e8f5e9;color:#2e7d32">💰 €${player.value || 0}M</div><div class="badge">OVR ${player.ovr}</div>${isAdmin() ? `<button class="btn btn-warning" style="padding:6px 12px" onclick="openTransferModal(${player.id})">🔄 Trasferisci</button>` : ''}</div></div>`;
       }).join('')}
       ${filtered.length === 0 ? `<div style="text-align:center;padding:40px;color:var(--muted)">Nessun giocatore trovato con questi filtri</div>` : ''}
     </div>
@@ -1767,261 +1338,43 @@ function applyMarketFilters(){
 // RENDER FUNCTIONS
 // ==========================================
 function renderLogin(){
-  return `
-    <div class="auth-screen">
-      <div class="auth-box">
-        <div class="logo" style="margin-bottom:24px">
-          <div class="logo-circle"><i class="ti ti-ball-football"></i></div>
-          <div>
-            <h2>Lega FC26 Pro</h2>
-            <div style="color:var(--muted)">Login alla lega</div>
-          </div>
-        </div>
-        <div class="field">
-          <label class="label">Email</label>
-          <input id="login-email" class="input" type="email" />
-        </div>
-        <div class="field">
-          <label class="label">Password</label>
-          <input id="login-password" class="input" type="password" />
-        </div>
-        <button class="btn btn-primary" style="width:100%" onclick="login()">Accedi</button>
-      </div>
-    </div>
-  `;
+  return `<div class="auth-screen"><div class="auth-box"><div class="logo" style="margin-bottom:24px"><div class="logo-circle"><i class="ti ti-ball-football"></i></div><div><h2>SERIE BOHKT</h2><div style="color:var(--muted)">Login alla lega</div></div></div><div class="field"><label class="label">Email</label><input id="login-email" class="input" type="email" /></div><div class="field"><label class="label">Password</label><input id="login-password" class="input" type="password" /></div><button class="btn btn-primary" style="width:100%" onclick="login()">Accedi</button></div></div>`;
 }
 
 function renderHome(){
   const totalValue = state.players.reduce((a,p)=>a+(p.value||0),0);
-  return `
-    <div class="grid">
-      <div class="card">
-        <h3>Squadre</h3>
-        <div style="font-size:42px;font-weight:700;margin-top:8px">${state.teams.length}</div>
-      </div>
-      <div class="card">
-        <h3>Giocatori</h3>
-        <div style="font-size:42px;font-weight:700;margin-top:8px">${state.players.length}</div>
-      </div>
-      <div class="card">
-        <h3>Valore Totale</h3>
-        <div style="font-size:42px;font-weight:700;margin-top:8px">€${totalValue}M</div>
-      </div>
-    </div>
-  `;
+  return `<div class="grid"><div class="card"><h3>Squadre</h3><div style="font-size:42px;font-weight:700;margin-top:8px">${state.teams.length}</div></div><div class="card"><h3>Giocatori</h3><div style="font-size:42px;font-weight:700;margin-top:8px">${state.players.length}</div></div><div class="card"><h3>Valore Totale</h3><div style="font-size:42px;font-weight:700;margin-top:8px">€${totalValue}M</div></div></div>`;
 }
 
 function renderTeams(){
-  return `
-    <div class="grid">
-      ${state.teams.map(team=>{
-        const players = teamPlayers(team.id);
-        const value = players.reduce((a,p)=>a+(p.value||0),0);
-        return `
-          <div class="card team-card" onclick="openTeam(${team.id})">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div>
-                <h3>${team.name}</h3>
-                <div style="color:var(--muted)">${players.length} giocatori</div>
-              </div>
-              <div class="badge">€${value}M</div>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
+  return `<div class="grid">${state.teams.map(team=>{const players = teamPlayers(team.id); const value = players.reduce((a,p)=>a+(p.value||0),0); return `<div class="card team-card" onclick="openTeam(${team.id})"><div style="display:flex;justify-content:space-between;align-items:center"><div><h3>${team.name}</h3><div style="color:var(--muted)">${players.length} giocatori</div></div><div class="badge">€${value}M</div></div></div>`;}).join('')}</div>`;
 }
 
 function renderStandings(){
-  const standings = state.teams.map(team=>{
-    let pts=0, gf=0, ga=0;
-    state.matches.forEach(match=>{
-      if(!match.played) return;
-      if(match.home_team===team.id){
-        gf += match.home_goals;
-        ga += match.away_goals;
-        if(match.home_goals>match.away_goals) pts += 3;
-        else if(match.home_goals===match.away_goals) pts += 1;
-      }
-      if(match.away_team===team.id){
-        gf += match.away_goals;
-        ga += match.home_goals;
-        if(match.away_goals>match.home_goals) pts += 3;
-        else if(match.away_goals===match.home_goals) pts += 1;
-      }
-    });
-    return { ...team, pts, gf, ga, diff:gf-ga };
-  }).sort((a,b)=>b.pts-a.pts || b.diff-a.diff);
-
-  return `
-    <div class="card table-wrap">
-      <table class="table">
-        <thead><tr><th>#</th><th>Squadra</th><th>GF</th><th>GA</th><th>DR</th><th>PTS</th></tr></thead>
-        <tbody>
-          ${standings.map((t,i)=>`<tr><td>${i+1}</td><td><strong>${t.name}</strong></td><td>${t.gf}</td><td>${t.ga}</td><td>${t.diff}</td><td><strong>${t.pts}</strong></td></tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
+  const standings = state.teams.map(team=>{let pts=0,gf=0,ga=0; state.matches.forEach(match=>{if(!match.played) return; if(match.home_team===team.id){gf+=match.home_goals; ga+=match.away_goals; if(match.home_goals>match.away_goals) pts+=3; else if(match.home_goals===match.away_goals) pts+=1;} if(match.away_team===team.id){gf+=match.away_goals; ga+=match.home_goals; if(match.away_goals>match.home_goals) pts+=3; else if(match.away_goals===match.home_goals) pts+=1;}}); return {...team,pts,gf,ga,diff:gf-ga};}).sort((a,b)=>b.pts-a.pts || b.diff-a.diff);
+  return `<div class="card table-wrap"><table class="table"><thead><tr><th>#</th><th>Squadra</th><th>GF</th><th>GA</th><th>DR</th><th>PTS</th></tr></thead><tbody>${standings.map((t,i)=>`<tr><td>${i+1}</td><td><strong>${t.name}</strong></td><td>${t.gf}</td><td>${t.ga}</td><td>${t.diff}</td><td><strong>${t.pts}</strong></td></tr>`).join('')}</tbody></table></div>`;
 }
 
 function renderMatches(){
   const grouped = {};
-  state.matches.forEach(match => {
-    if(!grouped[match.matchday]) grouped[match.matchday] = [];
-    grouped[match.matchday].push(match);
-  });
-
-  return Object.entries(grouped).sort((a,b)=>Number(a[0]) - Number(b[0])).map(([day,matches])=>`
-    <div class="card" style="margin-bottom:16px">
-      <h3 style="margin-bottom:14px">Giornata ${day}</h3>
-      ${matches.map(match=>{
-        const home = state.teams.find(t=>t.id===match.home_team);
-        const away = state.teams.find(t=>t.id===match.away_team);
-        return `
-          <div class="player-row">
-            <div><strong>${home?.name || '??'}</strong> ${match.home_goals} - ${match.away_goals} <strong>${away?.name || '??'}</strong></div>
-            ${isAdmin() ? `<div><button class="btn btn-danger" onclick="deleteMatch(${match.id})">Elimina</button></div>` : ''}
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `).join('');
+  state.matches.forEach(match => { if(!grouped[match.matchday]) grouped[match.matchday] = []; grouped[match.matchday].push(match); });
+  return Object.entries(grouped).sort((a,b)=>Number(a[0])-Number(b[0])).map(([day,matches])=>`<div class="card" style="margin-bottom:16px"><h3 style="margin-bottom:14px">Giornata ${day}</h3>${matches.map(match=>{const home=state.teams.find(t=>t.id===match.home_team); const away=state.teams.find(t=>t.id===match.away_team); return `<div class="player-row"><div><strong>${home?.name||'??'}</strong> ${match.home_goals} - ${match.away_goals} <strong>${away?.name||'??'}</strong></div>${isAdmin()?`<div><button class="btn btn-danger" onclick="deleteMatch(${match.id})">Elimina</button></div>`:''}</div>`;}).join('')}</div>`).join('');
 }
 
 function renderTeamDetail(){
   const team = currentTeam();
   const players = teamPlayers(team.id);
   const sortedPlayers = sortPlayersByRole(players);
-  
-  // Trova il nome del capitano
   const captain = state.players.find(p => p.id === team.captain_id);
-
   return `
-    <div style="margin-bottom:16px">
-      <button class="btn" onclick="goBack()">← Indietro</button>
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap">
-        <div>
-          <h2>${team.name}</h2>
-          <div style="color:var(--muted)">${team.formation}</div>
-          <!-- AGGIUNTA DEL CAPITANO -->
-          <div style="font-size:13px; margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-            ${team.captain_id ? `
-              <span style="color:var(--gold)">🏆 Capitano:</span>
-              <strong>${captain?.name || 'Sconosciuto'}</strong>
-              <button class="btn" style="padding:4px 10px; font-size:12px" onclick="openCaptainSelector(${team.id}, ${team.captain_id})">Cambia</button>
-            ` : `
-              <span style="color:var(--text-muted)">⚠️ Nessun capitano scelto</span>
-              <button class="btn btn-primary" style="padding:4px 10px; font-size:12px" onclick="openCaptainSelector(${team.id}, null)">Nomina Capitano</button>
-            `}
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <div class="badge">${players.length} giocatori</div>
-          <button class="btn" onclick="openEditTeam(${team.id})">✏️ Modifica formazione</button>
-        </div>
-      </div>
-    </div>
+    <div style="margin-bottom:16px"><button class="btn" onclick="goBack()">← Indietro</button></div>
+    <div class="card" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap"><div><h2>${team.name}</h2><div style="color:var(--muted)">${team.formation}</div><div style="font-size:13px; margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap">${team.captain_id ? `<span style="color:var(--gold)">🏆 Capitano:</span> <strong>${captain?.name || 'Sconosciuto'}</strong> <button class="btn" style="padding:4px 10px; font-size:12px" onclick="openCaptainSelector(${team.id}, ${team.captain_id})">Cambia</button>` : `<span style="color:var(--text-muted)">⚠️ Nessun capitano scelto</span> <button class="btn btn-primary" style="padding:4px 10px; font-size:12px" onclick="openCaptainSelector(${team.id}, null)">Nomina Capitano</button>`}</div></div><div style="display:flex;gap:8px;align-items:center"><div class="badge">${players.length} giocatori</div><button class="btn" onclick="openEditTeam(${team.id})">✏️ Modifica formazione</button></div></div></div>
     <div class="grid formation-grid" style="grid-template-columns:1fr 1fr;gap:16px">
-      <!-- FORMAZIONE -->
-      <div class="card">
-        <h3 style="margin-bottom:16px">Formazione</h3>
-        <div class="field-view">
-          ${FORMATIONS[team.formation].map(pos=>{
-            const player = lineupPlayer(team.id,pos.k);
-            return `
-              <div class="pos" style="left:${pos.x}%;top:${pos.y}%">
-                <div class="pos-shirt drop-zone" 
-                  style="background:${team.color || '#1d9e75'}" 
-                  data-position-key="${pos.k}"
-                  data-team-id="${team.id}"
-                  onclick="chooseLineupPlayer(${team.id},'${pos.k}')" 
-                  ondragover="allowDrop(event)" 
-                  ondrop="dropPlayer(event, ${team.id}, '${pos.k}')">
-                </div>
-                <div class="pos-name">${player ? player.name + (team.captain_id === player.id ? ' <span class="captain-badge" style="width:14px;height:14px;font-size:8px;display:inline-flex;align-items:center;justify-content:center;margin-left:4px">C</span>' : '') : 'Vuoto'}</div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-      <!-- PANCHINA COMPATTA -->
-      <div class="card">
-        <h3 style="margin-bottom:16px">Panchina</h3>
-        <div class="bench-grid">
-          ${Array.from({length:9}).map((_,i)=>{
-            const benchP = getBenchPlayer(team.id, `BENCH_${i}`);
-            if(benchP){
-              return `
-               <div class="bench-slot drop-zone" 
-                  data-slot="BENCH_${i}"
-                  data-team-id="${team.id}"
-                  onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')" 
-                  ondragover="window.allowDrop(event)" 
-                  ondrop="window.dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
-                  ${playerAvatar(benchP, team, 'bench')}
-                  <div style="flex:1; min-width:0">
-                    <div class="bench-player-name">${benchP.name}</div>
-                    <div class="bench-player-role">${ROLES[benchP.role] || benchP.role}</div>
-                  </div>
-                </div>
-              `;
-            } else {
-              return `
-                <div class="bench-slot-empty drop-zone" 
-                    data-slot="BENCH_${i}"
-                    data-team-id="${team.id}"
-                    onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')" 
-                    ondragover="window.allowDrop(event)" 
-                    ondrop="window.dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
-                  <span>➕</span>
-                  <span>Slot ${i+1}</span>
-                </div>
-              `;
-            }
-          }).join('')}
-        </div>
-      </div>
+      <div class="card"><h3 style="margin-bottom:16px">Formazione</h3><div class="field-view">${FORMATIONS[team.formation].map(pos=>{const player = lineupPlayer(team.id,pos.k); return `<div class="pos" style="left:${pos.x}%;top:${pos.y}%"><div class="pos-shirt" style="background:${team.color || '#1d9e75'}" onclick="chooseLineupPlayer(${team.id},'${pos.k}')">${player ? playerAvatar(player, team) : ''}</div><div class="pos-name">${player ? player.name + (team.captain_id === player.id ? ' <span class="captain-badge" style="width:14px;height:14px;font-size:8px;display:inline-flex;align-items:center;justify-content:center;margin-left:4px">C</span>' : '') : 'Vuoto'}</div></div>`;}).join('')}</div></div>
+      <div class="card"><h3 style="margin-bottom:16px">Panchina</h3><div class="bench-grid">${Array.from({length:9}).map((_,i)=>{const benchP = getBenchPlayer(team.id, `BENCH_${i}`); if(benchP){return `<div class="bench-slot" onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')">${playerAvatar(benchP, team, 'bench')}<div style="flex:1; min-width:0"><div class="bench-player-name">${benchP.name}</div><div class="bench-player-role">${ROLES[benchP.role] || benchP.role}</div></div></div>`;} else {return `<div class="bench-slot-empty" onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')"><span>➕</span><span>Slot ${i+1}</span></div>`;}}).join('')}</div></div>
     </div>
-    <!-- ROSA CON ORDINAMENTO E COLORI -->
-    <div class="card" style="margin-top:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h3>Rosa</h3>
-        ${isAdmin() ? `<button class="btn btn-primary" onclick="openCreatePlayer()">+ Giocatore</button>` : ''}
-      </div>
-      ${sortedPlayers.map(player=>{
-  const rowClass = getPlayerRowClass(player.role);
-  const isCaptain = team.captain_id === player.id;
-  return `
-    <div class="player-row ${rowClass} draggable" 
-  draggable="true" 
-  ondragstart="return false;" 
-  ontouchstart="handleTouchStart(event, ${player.id})"
-  style="cursor:grab">
-      <div style="display:flex;align-items:center;gap:10px;flex:1">
-        ${playerAvatar(player, team, 'small')}
-        <div>
-          <strong>${player.name} ${isCaptain ? '<span class="captain-badge" title="Capitano">C</span>' : ''}</strong>
-          <div style="font-size:12px;color:var(--muted)">${ROLES[player.role] || player.role}</div>
-          <div style="font-size:11px;color:var(--gold);margin-top:2px">
-            ⚽ ${player.goals || 0} gol • 🎯 ${player.assists || 0} assist • 🏆 MVP: ${player.mvp_count || 0}
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <div class="badge">OVR ${player.ovr}</div>
-        <div class="badge" style="background:rgba(255,215,0,0.1);color:var(--gold)">💰 ${player.value || 0}M</div>
-        ${isAdmin() ? `
-          <button class="btn" style="padding:6px 10px;font-size:12px" onclick="openEditPlayer(${player.id})">✏️</button>
-          <button class="btn btn-danger" style="padding:6px 10px;font-size:12px" onclick="deletePlayer(${player.id})">🗑️</button>
-        ` : ''}
-      </div>
-    </div>
-  `;
-}).join('')}
+    <div class="card" style="margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3>Rosa</h3>${isAdmin() ? `<button class="btn btn-primary" onclick="openCreatePlayer()">+ Giocatore</button>` : ''}</div>
+      ${sortedPlayers.map(player=>{const rowClass = getPlayerRowClass(player.role); const isCaptain = team.captain_id === player.id; return `<div class="player-row ${rowClass}"><div style="display:flex;align-items:center;gap:10px;flex:1">${playerAvatar(player, team, 'small')}<div><strong>${player.name} ${isCaptain ? '<span class="captain-badge" title="Capitano">C</span>' : ''}</strong><div style="font-size:12px;color:var(--muted)">${ROLES[player.role] || player.role}</div><div style="font-size:11px;color:var(--gold);margin-top:2px">⚽ ${player.goals || 0} gol • 🎯 ${player.assists || 0} assist • 🏆 MVP: ${player.mvp_count || 0}</div></div></div><div style="display:flex;gap:8px;align-items:center"><div class="badge">OVR ${player.ovr}</div><div class="badge" style="background:rgba(255,215,0,0.1);color:var(--gold)">💰 ${player.value || 0}M</div>${isAdmin() ? `<button class="btn" style="padding:6px 10px;font-size:12px" onclick="openEditPlayer(${player.id})">✏️</button><button class="btn btn-danger" style="padding:6px 10px;font-size:12px" onclick="deletePlayer(${player.id})">🗑️</button>` : ''}</div></div>`;}).join('')}
       ${sortedPlayers.length === 0 ? `<div style="text-align:center;padding:40px;color:var(--muted)">Nessun giocatore in rosa</div>` : ''}
     </div>
   `;
@@ -2029,32 +1382,8 @@ function renderTeamDetail(){
 
 function renderCalendar(){
   const serateRaggruppate = {};
-  CALENDAR.forEach(item => {
-    if(!serateRaggruppate[item.serata]) serateRaggruppate[item.serata] = [];
-    serateRaggruppate[item.serata].push(item);
-  });
-
-  return Object.entries(serateRaggruppate).map(([serata, giorni]) => `
-    <div class="card" style="margin-bottom:16px">
-      <h3 style="margin-bottom:14px">Serata ${serata}</h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        ${giorni.map(g => `
-          <div style="border:1px solid var(--border);border-radius:12px;padding:12px">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase">Giornata ${g.giornata}</div>
-            ${g.partite.map(([casa, ospite]) => {
-              const match = state.matches.find(m => {
-                const hTeam = state.teams.find(t => t.name.toLowerCase().includes(casa.toLowerCase()));
-                const aTeam = state.teams.find(t => t.name.toLowerCase().includes(ospite.toLowerCase()));
-                return hTeam && aTeam && m.home_team === hTeam.id && m.away_team === aTeam.id;
-              });
-              const scoreStr = match ? `<span style="color:var(--green);font-weight:700">${match.home_goals}–${match.away_goals}</span>` : `<span style="color:var(--muted)">vs</span>`;
-              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>${casa}</span>${scoreStr}<span>${ospite}</span></div>`;
-            }).join('')}
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `).join('');
+  CALENDAR.forEach(item => { if(!serateRaggruppate[item.serata]) serateRaggruppate[item.serata] = []; serateRaggruppate[item.serata].push(item); });
+  return Object.entries(serateRaggruppate).map(([serata, giorni]) => `<div class="card" style="margin-bottom:16px"><h3 style="margin-bottom:14px">Serata ${serata}</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${giorni.map(g => `<div style="border:1px solid var(--border);border-radius:12px;padding:12px"><div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase">Giornata ${g.giornata}</div>${g.partite.map(([casa, ospite]) => {const match = state.matches.find(m => {const hTeam = state.teams.find(t => t.name.toLowerCase().includes(casa.toLowerCase())); const aTeam = state.teams.find(t => t.name.toLowerCase().includes(ospite.toLowerCase())); return hTeam && aTeam && m.home_team === hTeam.id && m.away_team === aTeam.id;}); const scoreStr = match ? `<span style="color:var(--green);font-weight:700">${match.home_goals}–${match.away_goals}</span>` : `<span style="color:var(--muted)">vs</span>`; return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>${casa}</span>${scoreStr}<span>${ospite}</span></div>`;}).join('')}</div>`).join('')}</div></div>`).join('');
 }
 
 function renderModal(){
@@ -2065,298 +1394,25 @@ function renderModal(){
 function renderApp(){
   const app = qs('#app');
   const modalRoot = qs('#modal-root');
-
-  if(state.loading){
-    app.innerHTML = '<div style="padding:40px">Caricamento...</div>';
-    return;
-  }
-
-  if(!state.user){
-    app.innerHTML = renderLogin();
-    return;
-  }
-
-  app.innerHTML = `
-    <div class="app">
-      <div class="topbar">
-        <div class="logo">
-          <div class="logo-circle"><i class="ti ti-ball-football"></i></div>
-          <div><h2>SERIE BOHKT</h2><div style="font-size:13px;color:var(--muted)">${state.profile?.username || ''}</div></div>
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          ${isAdmin() ? `<button class="btn btn-primary" onclick="openResultModal()">+ Risultato</button>` : ''}
-          <button class="btn" onclick="logout()">Logout</button>
-        </div>
-      </div>
-      <div class="nav">
-        <button class="${state.page==='home'?'active':''}" onclick="navigate('home')">Home</button>
-        <button class="${state.page==='teams'?'active':''}" onclick="navigate('teams')">Squadre</button>
-        <button class="${state.page==='standings'?'active':''}" onclick="navigate('standings')">Classifica</button>
-        <button class="${state.page==='matches'?'active':''}" onclick="navigate('matches')">Risultati</button>
-        <button class="${state.page==='calendar'?'active':''}" onclick="navigate('calendar')">Calendario</button>
-        <button class="${state.page==='market'?'active':''}" onclick="navigate('market')">📊 Mercato</button>
-      </div>
-      <div class="page">
-        ${state.selectedTeam ? renderTeamDetail() : state.page==='home' ? renderHome() : state.page==='teams' ? renderTeams() : state.page==='matches' ? renderMatches() : state.page==='calendar' ? renderCalendar() : state.page==='market' ? renderMarket() : renderStandings()}
-      </div>
-    </div>
-  `;
+  if(state.loading){ app.innerHTML = '<div style="padding:40px">Caricamento...</div>'; return; }
+  if(!state.user){ app.innerHTML = renderLogin(); return; }
+  app.innerHTML = `<div class="app"><div class="topbar"><div class="logo"><div class="logo-circle"><i class="ti ti-ball-football"></i></div><div><h2>SERIE BOHKT</h2><div style="font-size:13px;color:var(--muted)">${state.profile?.username || ''}</div></div></div><div style="display:flex;gap:10px;flex-wrap:wrap">${isAdmin() ? `<button class="btn btn-primary" onclick="openResultModal()">+ Risultato</button>` : ''}<button class="btn" onclick="logout()">Logout</button></div></div><div class="nav"><button class="${state.page==='home'?'active':''}" onclick="navigate('home')">Home</button><button class="${state.page==='teams'?'active':''}" onclick="navigate('teams')">Squadre</button><button class="${state.page==='standings'?'active':''}" onclick="navigate('standings')">Classifica</button><button class="${state.page==='matches'?'active':''}" onclick="navigate('matches')">Risultati</button><button class="${state.page==='calendar'?'active':''}" onclick="navigate('calendar')">Calendario</button><button class="${state.page==='market'?'active':''}" onclick="navigate('market')">📊 Mercato</button></div><div class="page">${state.selectedTeam ? renderTeamDetail() : state.page==='home' ? renderHome() : state.page==='teams' ? renderTeams() : state.page==='matches' ? renderMatches() : state.page==='calendar' ? renderCalendar() : state.page==='market' ? renderMarket() : renderStandings()}</div></div>`;
   modalRoot.innerHTML = renderModal();
 }
 
 // ==========================================
-// NAVIGATION & DRAG & DROP
+// NAVIGATION
 // ==========================================
-
-// Inizia il drag (PC)
-function dragPlayer(event, playerId) {
-  draggedPlayerIdGlobal = playerId;
-  if (event.dataTransfer) {
-    event.dataTransfer.setData('text/plain', playerId);
-    event.dataTransfer.effectAllowed = 'move';
-    // Previene il comportamento di default del drag
-    event.dataTransfer.setDragImage(new Image(), 0, 0);
-  }
-  if (event.target.closest('.draggable')) {
-    event.target.closest('.draggable').classList.add('dragging');
-  }
-}
-
-function dragEnd(event) {
-  draggedPlayerIdGlobal = null;
-  draggedSourceType = null;
-  draggedSourceKey = null;
-  draggedSourceSlot = null;
-  document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-}
-
-function allowDrop(event) {
-  event.preventDefault();
-  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-}
-
-function dragOverHighlight(event) {
-  event.preventDefault();
-  const target = event.target.closest('.drop-zone, .bench-slot, .bench-slot-empty, .pos-shirt');
-  if (target && !target.classList.contains('drag-over')) {
-    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-    target.classList.add('drag-over');
-  }
-}
-
-function dragLeaveHighlight(event) {
-  const target = event.target.closest('.drop-zone, .bench-slot, .bench-slot-empty, .pos-shirt');
-  if (target) target.classList.remove('drag-over');
-}
-
-async function dropPlayer(event, teamId, positionKey) {
-  event.preventDefault();
-  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-  let playerId = draggedPlayerIdGlobal;
-  if (!playerId && event.dataTransfer) playerId = event.dataTransfer.getData('text/plain');
-  if (!playerId) return;
-  await saveLineup(teamId, positionKey, parseInt(playerId));
-  draggedPlayerIdGlobal = null;
-}
-
-async function dropBenchPlayer(event, teamId, slot) {
-  event.preventDefault();
-  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-  let playerId = draggedPlayerIdGlobal;
-  if (!playerId && event.dataTransfer) playerId = event.dataTransfer.getData('text/plain');
-  if (!playerId) return;
-  await saveBench(teamId, slot, parseInt(playerId));
-  draggedPlayerIdGlobal = null;
-}
-
-// Touch event per mobile
-// Touch event per mobile - VERSIONE MIGLIORATA
-function handleTouchStart(event, playerId) {
-  event.preventDefault();
-  event.stopPropagation();
-  
-  // Salva il giocatore trascinato
-  draggedPlayerIdGlobal = playerId;
-  touchStartX = event.touches[0].clientX;
-  touchStartY = event.touches[0].clientY;
-  touchTarget = event.target.closest('.draggable');
-  
-  if (!touchTarget) return;
-  
-  // Aggiungi classe dragging
-  touchTarget.classList.add('dragging');
-  
-  // Disabilita scroll durante il drag
-  document.body.classList.add('no-scroll');
-  
-  // Vibrazione leggera se supportata
-  if (navigator.vibrate) navigator.vibrate(50);
-  
-  // Crea un elemento fantasma per il drag (opzionale)
-  const ghost = touchTarget.cloneNode(true);
-  ghost.style.position = 'fixed';
-  ghost.style.top = '-1000px';
-  ghost.style.left = '-1000px';
-  ghost.style.opacity = '0.5';
-  ghost.style.pointerEvents = 'none';
-  document.body.appendChild(ghost);
-  
-  // Salva il riferimento al fantasma
-  touchTarget.ghost = ghost;
-}
-
-function handleTouchMove(event) {
-  if (!draggedPlayerIdGlobal) return;
-  
-  event.preventDefault();
-  event.stopPropagation();
-  
-  const touchX = event.touches[0].clientX;
-  const touchY = event.touches[0].clientY;
-  const deltaX = Math.abs(touchX - touchStartX);
-  const deltaY = Math.abs(touchY - touchStartY);
-  
-  // Se ha mosso il dito di almeno 10px, attiva il drag
-  if (deltaX > 10 || deltaY > 10) {
-    // Muovi il fantasma
-    if (touchTarget && touchTarget.ghost) {
-      touchTarget.ghost.style.top = `${touchY - 20}px`;
-      touchTarget.ghost.style.left = `${touchX - 20}px`;
-    }
-    
-    // Trova l'elemento sotto il dito
-    const elemUnderTouch = document.elementsFromPoint(touchX, touchY)[0];
-    let dropTarget = elemUnderTouch.closest('.drop-zone, .bench-slot, .bench-slot-empty, .pos-shirt');
-    
-    // Rimuovi highlight da tutti
-    document.querySelectorAll('.drag-over').forEach(el => {
-      if (el !== dropTarget) el.classList.remove('drag-over');
-    });
-    
-    if (dropTarget && !dropTarget.classList.contains('drag-over')) {
-      dropTarget.classList.add('drag-over');
-    }
-  }
-}
-
-async function handleTouchEnd(event) {
-  if (!draggedPlayerIdGlobal) {
-    dragEnd(event);
-    return;
-  }
-  
-  event.preventDefault();
-  event.stopPropagation();
-  
-  // Rimuovi il fantasma
-  if (touchTarget && touchTarget.ghost) {
-    touchTarget.ghost.remove();
-    delete touchTarget.ghost;
-  }
-  
-  // Riabilita scroll
-  document.body.classList.remove('no-scroll');
-  
-  const touchEndX = event.changedTouches[0].clientX;
-  const touchEndY = event.changedTouches[0].clientY;
-  const elemUnderTouch = document.elementsFromPoint(touchEndX, touchEndY)[0];
-  
-  let dropTarget = elemUnderTouch.closest('.pos-shirt');
-  if (!dropTarget) dropTarget = elemUnderTouch.closest('.bench-slot');
-  if (!dropTarget) dropTarget = elemUnderTouch.closest('.bench-slot-empty');
-  
-  if (dropTarget) {
-    const isLineup = dropTarget.closest('.pos-shirt') !== null;
-    const isBench = dropTarget.closest('.bench-slot') !== null || dropTarget.closest('.bench-slot-empty') !== null;
-    
-    if (isLineup) {
-      const positionKey = dropTarget.getAttribute('data-position-key');
-      const teamId = parseInt(dropTarget.getAttribute('data-team-id'));
-      if (positionKey && teamId) {
-        await saveLineup(teamId, positionKey, draggedPlayerIdGlobal);
-        toast('Giocatore spostato in formazione!');
-      }
-    } else if (isBench) {
-      const slot = dropTarget.getAttribute('data-slot');
-      const teamId = parseInt(dropTarget.getAttribute('data-team-id'));
-      if (slot && teamId) {
-        await saveBench(teamId, slot, draggedPlayerIdGlobal);
-        toast('Giocatore spostato in panchina!');
-      }
-    }
-  }
-  
-  dragEnd(event);
-}
-
-function dragEnd(event) {
-  // Rimuovi fantasma se esiste
-  if (touchTarget && touchTarget.ghost) {
-    touchTarget.ghost.remove();
-    delete touchTarget.ghost;
-  }
-  
-  // Riabilita scroll
-  document.body.classList.remove('no-scroll');
-  
-  draggedPlayerIdGlobal = null;
-  draggedSourceType = null;
-  draggedSourceKey = null;
-  draggedSourceSlot = null;
-  
-  document.querySelectorAll('.dragging').forEach(el => {
-    el.classList.remove('dragging');
-  });
-  document.querySelectorAll('.drag-over').forEach(el => {
-    el.classList.remove('drag-over');
-  });
-  
-  touchTarget = null;
-}
-  
-function initTouchSupport() {
-  // Previeni il comportamento predefinito su touchmove a livello globale durante il drag
-  document.body.addEventListener('touchmove', function(e) {
-    if (draggedPlayerIdGlobal) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-  
-  document.body.addEventListener('touchend', handleTouchEnd);
-}
-
-function navigate(page){
-  state.page = page;
-  state.selectedTeam = null;
-  renderApp();
-}
-
-function openTeam(id){
-  state.selectedTeam = id;
-  renderApp();
-}
-
-function goBack(){
-  state.selectedTeam = null;
-  renderApp();
-}
+function navigate(page){ state.page = page; state.selectedTeam = null; renderApp(); }
+function openTeam(id){ state.selectedTeam = id; renderApp(); }
+function goBack(){ state.selectedTeam = null; renderApp(); }
 
 // ==========================================
-// FUNZIONI CAPITANO (AGGIUNGI QUI!)
+// FUNZIONI CAPITANO
 // ==========================================
-
 async function setCaptain(teamId, playerId) {
-  const { error } = await supabaseClient
-    .from('teams')
-    .update({ captain_id: playerId })
-    .eq('id', teamId);
-  
-  if (error) {
-    toast(error.message);
-    return;
-  }
-  
+  const { error } = await supabaseClient.from('teams').update({ captain_id: playerId }).eq('id', teamId);
+  if (error) { toast(error.message); return; }
   toast('Capitano aggiornato!');
   await silentRefresh();
   renderApp();
@@ -2365,173 +1421,52 @@ async function setCaptain(teamId, playerId) {
 function openCaptainSelector(teamId, currentCaptainId) {
   const team = state.teams.find(t => t.id === teamId);
   const players = teamPlayers(teamId);
-  
-  openModal(()=>`
-    <h2 style="margin-bottom:18px">Scegli il Capitano</h2>
-    <p style="margin-bottom:16px; color:var(--text-muted); font-size:13px">
-      Il capitano porta la fascia in campo e riceve un bonus del +10% sul valore dopo ogni partita vinta.
-    </p>
-    <div style="max-height:400px; overflow-y:auto">
-      ${players.map(player => `
-        <div class="player-row" style="cursor:pointer; ${currentCaptainId === player.id ? 'border-left: 3px solid var(--gold); background: rgba(255,215,0,0.1);' : ''}" onclick="setCaptain(${teamId}, ${player.id})">
-          <div style="display:flex; align-items:center; gap:10px">
-            <div class="player-avatar small" style="background:${getTeamStyle(team?.name).color}"></div>
-            <div>
-              <strong>${player.name}</strong>
-              <div style="font-size:12px;color:var(--muted)">${ROLES[player.role] || player.role}</div>
-            </div>
-          </div>
-          ${currentCaptainId === player.id ? '<span style="color:var(--gold)">🏆 Capitano</span>' : '<button class="btn btn-primary" style="padding:4px 12px">Nomina</button>'}
-        </div>
-      `).join('')}
-    </div>
-    <div style="margin-top:16px">
-      <button class="btn" onclick="closeModal()">Annulla</button>
-    </div>
-  `);
+  openModal(()=>`<h2 style="margin-bottom:18px">Scegli il Capitano</h2><p style="margin-bottom:16px; color:var(--text-muted); font-size:13px">Il capitano porta la fascia in campo e riceve un bonus del +10% sul valore dopo ogni partita vinta.</p><div style="max-height:400px; overflow-y:auto">${players.map(player => `<div class="player-row" style="cursor:pointer; ${currentCaptainId === player.id ? 'border-left: 3px solid var(--gold); background: rgba(255,215,0,0.1);' : ''}" onclick="setCaptain(${teamId}, ${player.id})"><div style="display:flex; align-items:center; gap:10px"><div class="player-avatar small" style="background:${getTeamStyle(team?.name).color}"></div><div><strong>${player.name}</strong><div style="font-size:12px;color:var(--muted)">${ROLES[player.role] || player.role}</div></div></div>${currentCaptainId === player.id ? '<span style="color:var(--gold)">🏆 Capitano</span>' : '<button class="btn btn-primary" style="padding:4px 12px">Nomina</button>'}</div>`).join('')}</div><div style="margin-top:16px"><button class="btn" onclick="closeModal()">Annulla</button></div>`);
 }
 
 // ==========================================
 // MODALS
 // ==========================================
 function openCreatePlayer(){
-  openModal(()=>`
-    <h2 style="margin-bottom:18px">Nuovo Giocatore</h2>
-    <div class="field"><label class="label">Squadra</label><select id="p-team" class="input">${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
-    <div class="field"><label class="label">Nome</label><input id="p-name" class="input" /></div>
-    <div class="field"><label class="label">Ruolo</label><select id="p-role" class="input">${Object.entries(ROLES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div>
-    <div class="field"><label class="label">OVR</label><input id="p-ovr" class="input" type="number" /></div>
-    <div class="field"><label class="label">Valore (M€)</label><input id="p-value" class="input" type="number" /></div>
-    <div style="display:flex;gap:10px;margin-top:18px"><button class="btn" onclick="closeModal()">Annulla</button><button class="btn btn-primary" onclick="createPlayer()">Salva</button></div>
-  `);
+  openModal(()=>`<h2 style="margin-bottom:18px">Nuovo Giocatore</h2><div class="field"><label class="label">Squadra</label><select id="p-team" class="input">${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div><div class="field"><label class="label">Nome</label><input id="p-name" class="input" /></div><div class="field"><label class="label">Ruolo</label><select id="p-role" class="input">${Object.entries(ROLES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div><div class="field"><label class="label">OVR</label><input id="p-ovr" class="input" type="number" /></div><div class="field"><label class="label">Valore (M€)</label><input id="p-value" class="input" type="number" /></div><div style="display:flex;gap:10px;margin-top:18px"><button class="btn" onclick="closeModal()">Annulla</button><button class="btn btn-primary" onclick="createPlayer()">Salva</button></div>`);
 }
 
 function chooseLineupPlayer(teamId,positionKey){
   const players = teamPlayers(teamId);
-  openModal(()=>`
-    <h2 style="margin-bottom:18px">Seleziona giocatore</h2>
-    ${players.map(player=>`<div class="player-row"><div><strong>${player.name}</strong><div style="font-size:12px;color:var(--muted)">${ROLES[player.role]}</div></div><button class="btn btn-primary" onclick="saveLineup(${teamId},'${positionKey}',${player.id})">Seleziona</button></div>`).join('')}
-  `);
+  openModal(()=>`<h2 style="margin-bottom:18px">Seleziona giocatore</h2>${players.map(player=>`<div class="player-row"><div><strong>${player.name}</strong><div style="font-size:12px;color:var(--muted)">${ROLES[player.role]}</div></div><button class="btn btn-primary" onclick="saveLineup(${teamId},'${positionKey}',${player.id})">Seleziona</button></div>`).join('')}`);
 }
 
 function chooseBenchPlayer(teamId, slot){
-  console.log('=== CHOOSEBENCHPLAYER CHIAMATA ===');
-  console.log('teamId:', teamId);
-  console.log('slot:', slot);
-  
   const players = teamPlayers(teamId);
-  console.log('Giocatori disponibili:', players.length);
-  
-  if(players.length === 0) {
-    toast('Nessun giocatore in rosa');
-    return;
-  }
-  
-  openModal(()=>`
-    <h2 style="margin-bottom:18px">Seleziona riserva per ${slot}</h2>
-    <div style="max-height:400px;overflow-y:auto">
-      ${players.map(player=>`
-        <div class="player-row" style="cursor:pointer;border-bottom:1px solid #eee;padding:10px">
-          <div>
-            <strong>${player.name}</strong>
-            <div style="font-size:12px;color:gray">${ROLES[player.role] || player.role} | OVR ${player.ovr}</div>
-          </div>
-          <button class="btn btn-primary" style="padding:5px 12px" onclick="saveBench(${teamId}, '${slot}', ${player.id})">
-            Seleziona
-          </button>
-        </div>
-      `).join('')}
-    </div>
-    <div style="margin-top:16px">
-      <button class="btn" onclick="closeModal()">Annulla</button>
-    </div>
-  `);
+  if(players.length === 0) { toast('Nessun giocatore in rosa'); return; }
+  openModal(()=>`<h2 style="margin-bottom:18px">Seleziona riserva per ${slot}</h2><div style="max-height:400px;overflow-y:auto">${players.map(player=>`<div class="player-row" style="cursor:pointer;border-bottom:1px solid #eee;padding:10px"><div><strong>${player.name}</strong><div style="font-size:12px;color:gray">${ROLES[player.role] || player.role} | OVR ${player.ovr}</div></div><button class="btn btn-primary" style="padding:5px 12px" onclick="saveBench(${teamId}, '${slot}', ${player.id})">Seleziona</button></div>`).join('')}</div><div style="margin-top:16px"><button class="btn" onclick="closeModal()">Annulla</button></div>`);
 }
 
 function openEditPlayer(playerId){
   const player = state.players.find(p => p.id === playerId);
   if(!player) return;
-  openModal(() => `
-    <h2 style="margin-bottom:18px">Modifica Giocatore</h2>
-    <input type="hidden" id="ep-id" value="${player.id}" />
-    <div class="field"><label class="label">Nome</label><input id="ep-name" class="input" value="${player.name}" /></div>
-    <div class="field"><label class="label">Squadra</label><select id="ep-team" class="input">${state.teams.map(t => `<option value="${t.id}" ${t.id === player.team_id ? 'selected' : ''}>${t.name}</option>`).join('')}</select></div>
-    <div class="field"><label class="label">Ruolo</label><select id="ep-role" class="input">${Object.entries(ROLES).map(([k,v]) => `<option value="${k}" ${k === player.role ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
-    <div class="field"><label class="label">OVR</label><input id="ep-ovr" class="input" type="number" value="${player.ovr}" /></div>
-    <div class="field"><label class="label">Valore (crediti)</label><input id="ep-value" class="input" type="number" value="${player.value}" /></div>
-    <div class="field"><label class="label">Infortunato</label><select id="ep-injured" class="input"><option value="false" ${!player.injured ? 'selected' : ''}>No</option><option value="true" ${player.injured ? 'selected' : ''}>Sì</option></select></div>
-    <div style="display:flex;gap:10px;margin-top:18px"><button class="btn" onclick="closeModal()">Annulla</button><button class="btn btn-primary" onclick="updatePlayer()">Salva</button></div>
-  `);
+  openModal(() => `<h2 style="margin-bottom:18px">Modifica Giocatore</h2><input type="hidden" id="ep-id" value="${player.id}" /><div class="field"><label class="label">Nome</label><input id="ep-name" class="input" value="${player.name}" /></div><div class="field"><label class="label">Squadra</label><select id="ep-team" class="input">${state.teams.map(t => `<option value="${t.id}" ${t.id === player.team_id ? 'selected' : ''}>${t.name}</option>`).join('')}</select></div><div class="field"><label class="label">Ruolo</label><select id="ep-role" class="input">${Object.entries(ROLES).map(([k,v]) => `<option value="${k}" ${k === player.role ? 'selected' : ''}>${v}</option>`).join('')}</select></div><div class="field"><label class="label">OVR</label><input id="ep-ovr" class="input" type="number" value="${player.ovr}" /></div><div class="field"><label class="label">Valore (crediti)</label><input id="ep-value" class="input" type="number" value="${player.value}" /></div><div class="field"><label class="label">Infortunato</label><select id="ep-injured" class="input"><option value="false" ${!player.injured ? 'selected' : ''}>No</option><option value="true" ${player.injured ? 'selected' : ''}>Sì</option></select></div><div style="display:flex;gap:10px;margin-top:18px"><button class="btn" onclick="closeModal()">Annulla</button><button class="btn btn-primary" onclick="updatePlayer()">Salva</button></div>`);
 }
 
 function openEditTeam(teamId){
   const team = state.teams.find(t => t.id === teamId);
   if(!team) return;
-  openModal(() => `
-    <h2 style="margin-bottom:18px">Modifica Squadra</h2>
-    <input type="hidden" id="et-id" value="${team.id}" />
-    <div class="field"><label class="label">Formazione</label><select id="et-formation" class="input" onchange="updateFormationPreview(this.value)">${Object.keys(FORMATIONS).map(f => `<option value="${f}" ${f === team.formation ? 'selected' : ''}>${f}</option>`).join('')}</select><div id="formation-preview" style="font-size:12px;color:var(--muted);margin-top:6px">${FORMATIONS[team.formation].length - 1} giocatori di movimento + 1 portiere</div></div>
-    <div class="field"><label class="label">Crediti rimanenti</label><input id="et-credits" class="input" type="number" value="${team.credits ?? 0}" /></div>
-    <div style="display:flex;gap:10px;margin-top:18px"><button class="btn" onclick="closeModal()">Annulla</button><button class="btn btn-primary" onclick="updateTeam()">Salva</button></div>
-  `);
+  openModal(() => `<h2 style="margin-bottom:18px">Modifica Squadra</h2><input type="hidden" id="et-id" value="${team.id}" /><div class="field"><label class="label">Formazione</label><select id="et-formation" class="input" onchange="updateFormationPreview(this.value)">${Object.keys(FORMATIONS).map(f => `<option value="${f}" ${f === team.formation ? 'selected' : ''}>${f}</option>`).join('')}</select><div id="formation-preview" style="font-size:12px;color:var(--muted);margin-top:6px">${FORMATIONS[team.formation].length - 1} giocatori di movimento + 1 portiere</div></div><div class="field"><label class="label">Crediti rimanenti</label><input id="et-credits" class="input" type="number" value="${team.credits ?? 0}" /></div><div style="display:flex;gap:10px;margin-top:18px"><button class="btn" onclick="closeModal()">Annulla</button><button class="btn btn-primary" onclick="updateTeam()">Salva</button></div>`);
 }
 
 function updateFormationPreview(formation){
   const el = document.getElementById('formation-preview');
-  if(el && FORMATIONS[formation]){
-    el.textContent = `${FORMATIONS[formation].length - 1} giocatori di movimento + 1 portiere`;
-  }
+  if(el && FORMATIONS[formation]) el.textContent = `${FORMATIONS[formation].length - 1} giocatori di movimento + 1 portiere`;
 }
 
 function openResultModal(){
-  openModal(()=>`
-    <h2 style="margin-bottom:18px">Nuovo Risultato</h2>
-    <div class="field">
-      <label class="label">Giornata</label>
-      <input id="m-day" class="input" type="number" value="1" />
-    </div>
-    <div class="field">
-      <label class="label">Casa</label>
-      <select id="m-home" class="input" onchange="loadPlayersForResult()">
-        <option value="">Seleziona squadra</option>
-        ${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}
-      </select>
-    </div>
-    <div class="field">
-      <label class="label">Gol Casa</label>
-      <input id="m-hg" class="input" type="number" value="0" onchange="updateGoalInputs()" min="0" />
-    </div>
-    <div class="field">
-      <label class="label">Ospite</label>
-      <select id="m-away" class="input" onchange="loadPlayersForResult()">
-        <option value="">Seleziona squadra</option>
-        ${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}
-      </select>
-    </div>
-    <div class="field">
-      <label class="label">Gol Ospite</label>
-      <input id="m-ag" class="input" type="number" value="0" onchange="updateGoalInputs()" min="0" />
-    </div>
-    
-    <div id="goals-container" style="margin-top:20px">
-      <h4 style="margin-bottom:12px">⚽ Marcatori e Assist</h4>
-      <div id="goals-list"></div>
-    </div>
-    
-    <div style="display:flex;gap:10px;margin-top:24px">
-      <button class="btn" onclick="closeModal()">Annulla</button>
-      <button class="btn btn-primary" onclick="createResultWithDetails()">Salva</button>
-    </div>
-  `);
+  openModal(()=>`<h2 style="margin-bottom:18px">Nuovo Risultato</h2><div class="field"><label class="label">Giornata</label><input id="m-day" class="input" type="number" value="1" /></div><div class="field"><label class="label">Casa</label><select id="m-home" class="input">${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div><div class="field"><label class="label">Gol Casa</label><input id="m-hg" class="input" type="number" value="0" /></div><div class="field"><label class="label">Ospite</label><select id="m-away" class="input">${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div><div class="field"><label class="label">Gol Ospite</label><input id="m-ag" class="input" type="number" value="0" /></div><div style="display:flex;gap:10px;margin-top:18px"><button class="btn" onclick="closeModal()">Annulla</button><button class="btn btn-primary" onclick="createResult()">Salva</button></div>`);
 }
+
 // ==========================================
 // START
 // ==========================================
-
-// ESPONI ROLES GLOBALMENTE PER DEBUG
 window.ROLES = ROLES;
-console.log('ROLES caricati:', Object.keys(ROLES));
-
 bootstrap();
 </script>
 </body>
