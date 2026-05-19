@@ -1292,8 +1292,6 @@ function openCreatePlayer(){
 
 function chooseLineupPlayer(teamId,positionKey){
 
-  const formationPos = FORMATIONS[currentTeam().formation].find(p=>p.k===positionKey);
-
   const players = teamPlayers(teamId);
 
   openModal(()=>`
