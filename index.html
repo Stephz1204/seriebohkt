@@ -718,6 +718,27 @@ h1, h2, h3, h4 {
     touch-action: manipulation;
   }
 }
+
+  /* Disabilita selezione durante drag su mobile */
+.dragging * {
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+/* Disabilita selezione testo sugli elementi draggabili */
+.draggable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Previene lo scroll durante il drag */
+.no-scroll {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
   
 </style>
 </head>
@@ -1954,7 +1975,11 @@ function renderTeamDetail(){
   const rowClass = getPlayerRowClass(player.role);
   const isCaptain = team.captain_id === player.id;
   return `
-    <div class="player-row ${rowClass} draggable" draggable="true" ondragstart="dragPlayer(event, ${player.id})" style="cursor:grab">
+    <div class="player-row ${rowClass} draggable" 
+  draggable="true" 
+  ondragstart="dragPlayer(event, ${player.id})"
+  ontouchstart="handleTouchStart(event, ${player.id})"
+  style="cursor:grab">
       <div style="display:flex;align-items:center;gap:10px;flex:1">
         ${playerAvatar(player, team, 'small')}
         <div>
@@ -2063,14 +2088,13 @@ function renderApp(){
 // ==========================================
 
 // Inizia il drag (PC)
-function dragPlayer(event, playerId, sourceType, sourceKey, sourceSlot) {
+function dragPlayer(event, playerId) {
   draggedPlayerIdGlobal = playerId;
-  draggedSourceType = sourceType;
-  draggedSourceKey = sourceKey;
-  draggedSourceSlot = sourceSlot;
   if (event.dataTransfer) {
     event.dataTransfer.setData('text/plain', playerId);
     event.dataTransfer.effectAllowed = 'move';
+    // Previene il comportamento di default del drag
+    event.dataTransfer.setDragImage(new Image(), 0, 0);
   }
   if (event.target.closest('.draggable')) {
     event.target.closest('.draggable').classList.add('dragging');
@@ -2126,61 +2150,158 @@ async function dropBenchPlayer(event, teamId, slot) {
 }
 
 // Touch event per mobile
-function handleTouchStart(event, playerId, sourceType, sourceKey, sourceSlot) {
+// Touch event per mobile - VERSIONE MIGLIORATA
+function handleTouchStart(event, playerId) {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  // Salva il giocatore trascinato
+  draggedPlayerIdGlobal = playerId;
   touchStartX = event.touches[0].clientX;
   touchStartY = event.touches[0].clientY;
   touchTarget = event.target.closest('.draggable');
+  
   if (!touchTarget) return;
-  draggedPlayerIdGlobal = playerId;
-  draggedSourceType = sourceType;
-  draggedSourceKey = sourceKey;
-  draggedSourceSlot = sourceSlot;
+  
+  // Aggiungi classe dragging
   touchTarget.classList.add('dragging');
-  event.preventDefault();
+  
+  // Disabilita scroll durante il drag
+  document.body.classList.add('no-scroll');
+  
+  // Vibrazione leggera se supportata
+  if (navigator.vibrate) navigator.vibrate(50);
+  
+  // Crea un elemento fantasma per il drag (opzionale)
+  const ghost = touchTarget.cloneNode(true);
+  ghost.style.position = 'fixed';
+  ghost.style.top = '-1000px';
+  ghost.style.left = '-1000px';
+  ghost.style.opacity = '0.5';
+  ghost.style.pointerEvents = 'none';
+  document.body.appendChild(ghost);
+  
+  // Salva il riferimento al fantasma
+  touchTarget.ghost = ghost;
 }
 
 function handleTouchMove(event) {
   if (!draggedPlayerIdGlobal) return;
+  
   event.preventDefault();
+  event.stopPropagation();
+  
   const touchX = event.touches[0].clientX;
   const touchY = event.touches[0].clientY;
   const deltaX = Math.abs(touchX - touchStartX);
   const deltaY = Math.abs(touchY - touchStartY);
+  
+  // Se ha mosso il dito di almeno 10px, attiva il drag
   if (deltaX > 10 || deltaY > 10) {
+    // Muovi il fantasma
+    if (touchTarget && touchTarget.ghost) {
+      touchTarget.ghost.style.top = `${touchY - 20}px`;
+      touchTarget.ghost.style.left = `${touchX - 20}px`;
+    }
+    
+    // Trova l'elemento sotto il dito
     const elemUnderTouch = document.elementsFromPoint(touchX, touchY)[0];
-    const dropTarget = elemUnderTouch.closest('.drop-zone, .bench-slot, .bench-slot-empty, .pos-shirt');
-    document.querySelectorAll('.drag-over').forEach(el => { if (el !== dropTarget) el.classList.remove('drag-over'); });
-    if (dropTarget && !dropTarget.classList.contains('drag-over')) dropTarget.classList.add('drag-over');
+    let dropTarget = elemUnderTouch.closest('.drop-zone, .bench-slot, .bench-slot-empty, .pos-shirt');
+    
+    // Rimuovi highlight da tutti
+    document.querySelectorAll('.drag-over').forEach(el => {
+      if (el !== dropTarget) el.classList.remove('drag-over');
+    });
+    
+    if (dropTarget && !dropTarget.classList.contains('drag-over')) {
+      dropTarget.classList.add('drag-over');
+    }
   }
 }
 
 async function handleTouchEnd(event) {
-  if (!draggedPlayerIdGlobal) { dragEnd(event); return; }
+  if (!draggedPlayerIdGlobal) {
+    dragEnd(event);
+    return;
+  }
+  
   event.preventDefault();
+  event.stopPropagation();
+  
+  // Rimuovi il fantasma
+  if (touchTarget && touchTarget.ghost) {
+    touchTarget.ghost.remove();
+    delete touchTarget.ghost;
+  }
+  
+  // Riabilita scroll
+  document.body.classList.remove('no-scroll');
+  
   const touchEndX = event.changedTouches[0].clientX;
   const touchEndY = event.changedTouches[0].clientY;
   const elemUnderTouch = document.elementsFromPoint(touchEndX, touchEndY)[0];
+  
   let dropTarget = elemUnderTouch.closest('.pos-shirt');
   if (!dropTarget) dropTarget = elemUnderTouch.closest('.bench-slot');
   if (!dropTarget) dropTarget = elemUnderTouch.closest('.bench-slot-empty');
+  
   if (dropTarget) {
     const isLineup = dropTarget.closest('.pos-shirt') !== null;
     const isBench = dropTarget.closest('.bench-slot') !== null || dropTarget.closest('.bench-slot-empty') !== null;
+    
     if (isLineup) {
       const positionKey = dropTarget.getAttribute('data-position-key');
       const teamId = parseInt(dropTarget.getAttribute('data-team-id'));
-      if (positionKey && teamId) await saveLineup(teamId, positionKey, draggedPlayerIdGlobal);
+      if (positionKey && teamId) {
+        await saveLineup(teamId, positionKey, draggedPlayerIdGlobal);
+        toast('Giocatore spostato in formazione!');
+      }
     } else if (isBench) {
       const slot = dropTarget.getAttribute('data-slot');
       const teamId = parseInt(dropTarget.getAttribute('data-team-id'));
-      if (slot && teamId) await saveBench(teamId, slot, draggedPlayerIdGlobal);
+      if (slot && teamId) {
+        await saveBench(teamId, slot, draggedPlayerIdGlobal);
+        toast('Giocatore spostato in panchina!');
+      }
     }
   }
+  
   dragEnd(event);
 }
 
+function dragEnd(event) {
+  // Rimuovi fantasma se esiste
+  if (touchTarget && touchTarget.ghost) {
+    touchTarget.ghost.remove();
+    delete touchTarget.ghost;
+  }
+  
+  // Riabilita scroll
+  document.body.classList.remove('no-scroll');
+  
+  draggedPlayerIdGlobal = null;
+  draggedSourceType = null;
+  draggedSourceKey = null;
+  draggedSourceSlot = null;
+  
+  document.querySelectorAll('.dragging').forEach(el => {
+    el.classList.remove('dragging');
+  });
+  document.querySelectorAll('.drag-over').forEach(el => {
+    el.classList.remove('drag-over');
+  });
+  
+  touchTarget = null;
+}
+  
 function initTouchSupport() {
-  document.body.addEventListener('touchmove', handleTouchMove, { passive: false });
+  // Previeni il comportamento predefinito su touchmove a livello globale durante il drag
+  document.body.addEventListener('touchmove', function(e) {
+    if (draggedPlayerIdGlobal) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+  
   document.body.addEventListener('touchend', handleTouchEnd);
 }
 
