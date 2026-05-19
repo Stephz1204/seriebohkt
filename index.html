@@ -697,9 +697,11 @@ function lineupPlayer(teamId,key){
 }
 
 function getBenchPlayer(teamId,slot){
-  const row = state.bench.find(b => b.team_id===teamId && b.slot===slot);
+  if(!state.bench || !state.players) return null;
+  const row = state.bench.find(b => b.team_id === teamId && b.slot === slot);
   if(!row) return null;
-  return state.players.find(p=>p.id===row.player_id);
+  const player = state.players.find(p => p.id === row.player_id);
+  return player || null;
 }
 
 function isAdmin(){
