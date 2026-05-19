@@ -132,6 +132,11 @@ button,input,select{
   color:var(--danger);
   border-color:#ffcbcb;
 }
+.btn-warning{
+  background:#fff3e0;
+  color:#e67e22;
+  border-color:#ffe0b3;
+}
 .input{
   width:100%;
   padding:12px;
@@ -268,6 +273,17 @@ button,input,select{
   padding:12px 18px;
   border-radius:12px;
   z-index:999;
+}
+.filter-bar{
+  display:flex;
+  gap:12px;
+  margin-bottom:16px;
+  flex-wrap:wrap;
+}
+.filter-bar select, .filter-bar input{
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid var(--border);
 }
 @media(max-width:700px){
   .topbar{
@@ -584,7 +600,8 @@ const state = {
   bench:[],
   selectedTeam:null,
   modal:null,
-  loading:true
+  loading:true,
+  marketFilter:{team:'all', role:'all', minValue:0, maxValue:9999}
 };
 
 // ==========================================
@@ -951,6 +968,177 @@ async function updateTeam(){
   if(error){ toast(error.message); return; }
   closeModal();
   toast('Squadra aggiornata');
+}
+
+// ==========================================
+// MARKET FUNCTIONS
+// ==========================================
+
+async function transferPlayer(playerId, newTeamId){
+  if(!confirm('Sei sicuro di voler trasferire questo giocatore?')) return;
+  
+  const player = state.players.find(p => p.id === playerId);
+  const oldTeam = state.teams.find(t => t.id === player.team_id);
+  const newTeam = state.teams.find(t => t.id === newTeamId);
+  
+  const { error } = await supabaseClient
+    .from('players')
+    .update({ team_id: newTeamId })
+    .eq('id', playerId);
+    
+  if(error){
+    toast(error.message);
+    return;
+  }
+  
+  // Rimuovi il giocatore dalle formazioni e panchina della vecchia squadra
+  await supabaseClient
+    .from('lineups')
+    .delete()
+    .eq('team_id', player.team_id)
+    .eq('player_id', playerId);
+    
+  await supabaseClient
+    .from('bench')
+    .delete()
+    .eq('team_id', player.team_id)
+    .eq('player_id', playerId);
+  
+  toast(`${player.name} trasferito da ${oldTeam?.name} a ${newTeam?.name}`);
+  closeModal();
+}
+
+function openTransferModal(playerId){
+  const player = state.players.find(p => p.id === playerId);
+  const currentTeam = state.teams.find(t => t.id === player.team_id);
+  const otherTeams = state.teams.filter(t => t.id !== player.team_id);
+  
+  openModal(() => `
+    <h2 style="margin-bottom:18px">Trasferimento Giocatore</h2>
+    
+    <div class="field">
+      <label class="label">Giocatore</label>
+      <div style="font-size:18px;font-weight:600;margin-top:6px">${player.name}</div>
+    </div>
+    
+    <div class="field">
+      <label class="label">Squadra attuale</label>
+      <div style="margin-top:6px">${currentTeam?.name}</div>
+    </div>
+    
+    <div class="field">
+      <label class="label">Nuova squadra</label>
+      <select id="transfer-team" class="input">
+        ${otherTeams.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+      </select>
+    </div>
+    
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn" onclick="closeModal()">Annulla</button>
+      <button class="btn btn-primary" onclick="transferPlayer(${playerId}, Number(qs('#transfer-team').value))">
+        Conferma Trasferimento
+      </button>
+    </div>
+  `);
+}
+
+function renderMarket(){
+  // Filtra i giocatori
+  let filtered = [...state.players];
+  
+  if(state.marketFilter.team !== 'all'){
+    filtered = filtered.filter(p => p.team_id === Number(state.marketFilter.team));
+  }
+  
+  if(state.marketFilter.role !== 'all'){
+    filtered = filtered.filter(p => p.role === state.marketFilter.role);
+  }
+  
+  filtered = filtered.filter(p => 
+    (p.value || 0) >= state.marketFilter.minValue && 
+    (p.value || 0) <= state.marketFilter.maxValue
+  );
+  
+  // Ordina dal più pagato al meno pagato
+  filtered.sort((a,b) => (b.value || 0) - (a.value || 0));
+  
+  const totalValue = filtered.reduce((sum, p) => sum + (p.value || 0), 0);
+  
+  return `
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="margin-bottom:16px">📊 Calciomercato</h2>
+      
+      <div class="filter-bar">
+        <select id="market-team-filter" onchange="applyMarketFilters()">
+          <option value="all">Tutte le squadre</option>
+          ${state.teams.map(t => `<option value="${t.id}" ${state.marketFilter.team == t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+        </select>
+        
+        <select id="market-role-filter" onchange="applyMarketFilters()">
+          <option value="all">Tutti i ruoli</option>
+          ${Object.entries(ROLES).map(([k,v]) => `<option value="${k}" ${state.marketFilter.role === k ? 'selected' : ''}>${v}</option>`).join('')}
+        </select>
+        
+        <input type="number" id="market-min-value" placeholder="Valore min (M€)" value="${state.marketFilter.minValue}" onchange="applyMarketFilters()" style="width:120px">
+        <input type="number" id="market-max-value" placeholder="Valore max (M€)" value="${state.marketFilter.maxValue}" onchange="applyMarketFilters()" style="width:120px">
+      </div>
+      
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="badge">${filtered.length} giocatori</div>
+        <div class="badge">💰 Valore totale: €${totalValue}M</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h3 style="margin-bottom:16px">🏆 Lista Giocatori (dal più costoso)</h3>
+      
+      ${filtered.map(player => {
+        const team = state.teams.find(t => t.id === player.team_id);
+        const isOwner = state.profile?.team_id === player.team_id;
+        
+        return `
+          <div class="player-row">
+            <div style="display:flex;align-items:center;gap:10px;flex:1">
+              <div class="player-avatar small" style="background:${getTeamStyle(team?.name).color}">
+              </div>
+              <div>
+                <strong>${player.name}</strong>
+                <div style="font-size:12px;color:var(--muted)">
+                  ${ROLES[player.role] || player.role} • ${team?.name || 'Senza squadra'}
+                </div>
+              </div>
+            </div>
+            
+            <div style="display:flex;gap:8px;align-items:center">
+              <div class="badge" style="background:#e8f5e9;color:#2e7d32">
+                💰 €${player.value || 0}M
+              </div>
+              <div class="badge">OVR ${player.ovr}</div>
+              ${isAdmin() ? `
+                <button class="btn btn-warning" style="padding:6px 12px" onclick="openTransferModal(${player.id})">
+                  🔄 Trasferisci
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+      
+      ${filtered.length === 0 ? `
+        <div style="text-align:center;padding:40px;color:var(--muted)">
+          Nessun giocatore trovato con questi filtri
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function applyMarketFilters(){
+  state.marketFilter.team = qs('#market-team-filter').value;
+  state.marketFilter.role = qs('#market-role-filter').value;
+  state.marketFilter.minValue = Number(qs('#market-min-value').value) || 0;
+  state.marketFilter.maxValue = Number(qs('#market-max-value').value) || 9999;
+  renderApp();
 }
 
 // ==========================================
@@ -1461,6 +1649,7 @@ function renderApp(){
         <button class="${state.page==='standings'?'active':''}" onclick="navigate('standings')">Classifica</button>
         <button class="${state.page==='matches'?'active':''}" onclick="navigate('matches')">Risultati</button>
         <button class="${state.page==='calendar'?'active':''}" onclick="navigate('calendar')">Calendario</button>
+        <button class="${state.page==='market'?'active':''}" onclick="navigate('market')">📊 Mercato</button>
       </div>
 
       <div class="page">
@@ -1475,7 +1664,9 @@ function renderApp(){
                 ? renderMatches()
                 : state.page==='calendar'
                   ? renderCalendar()
-                  : renderStandings()
+                  : state.page==='market'
+                    ? renderMarket()
+                    : renderStandings()
 
         }
 
@@ -1567,7 +1758,7 @@ function openCreatePlayer(){
     </div>
 
     <div class="field">
-      <label class="label">Valore</label>
+      <label class="label">Valore (M€)</label>
       <input id="p-value" class="input" type="number" />
     </div>
 
