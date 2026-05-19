@@ -1270,33 +1270,33 @@ function renderTeamDetail(){
           }).join('')}
         </div>
       </div>
-      <!-- PANCHINA COMPATTA -->
-      <div class="card">
-        <h3 style="margin-bottom:16px">Panchina</h3>
-        <div class="bench-grid">
-          ${Array.from({length:9}).map((_,i)=>{
-            const benchP = getBenchPlayer(team.id, `BENCH_${i}`);
-            if(benchP){
-              return `
-                <div class="bench-slot" onclick="chooseBenchPlayer(${team.id}, 'BENCH_${i}')" ondragover="allowDrop(event)" ondrop="dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
-                  ${playerAvatar(benchP, team, 'bench')}
-                  <div style="flex:1; min-width:0">
-                    <div class="bench-player-name">${benchP.name}</div>
-                    <div class="bench-player-role">${ROLES[benchP.role] || benchP.role}</div>
-                  </div>
-                </div>
-              `;
-            } else {
-              return `
-                <div class="bench-slot-empty" onclick="chooseBenchPlayer(${team.id}, 'BENCH_${i}')" ondragover="allowDrop(event)" ondrop="dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
-                  <span>➕</span>
-                  <span>Slot ${i+1}</span>
-                </div>
-              `;
-            }
-          }).join('')}
-        </div>
-      </div>
+<!-- PANCHINA COMPATTA -->
+<div class="card">
+  <h3 style="margin-bottom:16px">Panchina</h3>
+  <div class="bench-grid">
+    ${Array.from({length:9}).map((_,i)=>{
+      const benchP = getBenchPlayer(team.id, `BENCH_${i}`);
+      if(benchP){
+        return `
+          <div class="bench-slot" onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')" ondragover="window.allowDrop(event)" ondrop="window.dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
+            ${playerAvatar(benchP, team, 'bench')}
+            <div style="flex:1; min-width:0">
+              <div class="bench-player-name">${benchP.name}</div>
+              <div class="bench-player-role">${ROLES[benchP.role] || benchP.role}</div>
+            </div>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="bench-slot-empty" onclick="window.chooseBenchPlayer(${team.id}, 'BENCH_${i}')" ondragover="window.allowDrop(event)" ondrop="window.dropBenchPlayer(event, ${team.id}, 'BENCH_${i}')">
+            <span>➕</span>
+            <span>Slot ${i+1}</span>
+          </div>
+        `;
+      }
+    }).join('')}
+  </div>
+</div>
     </div>
     <!-- ROSA -->
     <div class="card" style="margin-top:16px">
