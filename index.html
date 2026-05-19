@@ -739,6 +739,27 @@ h1, h2, h3, h4 {
   width: 100%;
   height: 100%;
 }
+
+  /* Disabilita selezione testo su tutta la pagina durante il drag */
+.dragging, .dragging * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+/* Disabilita il menu contestuale su lungo tap */
+.draggable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Disabilita selezione sugli elementi della rosa */
+.player-row {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
   
 </style>
 </head>
