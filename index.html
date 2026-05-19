@@ -697,10 +697,13 @@ function lineupPlayer(teamId,key){
 }
 
 function getBenchPlayer(teamId,slot){
-  if(!state.bench || !state.players) return null;
+  console.log('Bench data:', state.bench);
+  console.log('Looking for:', teamId, slot);
   const row = state.bench.find(b => b.team_id === teamId && b.slot === slot);
+  console.log('Found row:', row);
   if(!row) return null;
   const player = state.players.find(p => p.id === row.player_id);
+  console.log('Found player:', player);
   return player || null;
 }
 
